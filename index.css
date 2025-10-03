@@ -301,7 +301,7 @@ header h1.is-overflowing > span {
   background-color: var(--c-success-hover);
 }
 
-.header-btn {
+.header-btn, .btn-icon {
     background: none;
     border: none;
     cursor: pointer;
@@ -313,19 +313,19 @@ header h1.is-overflowing > span {
     justify-content: center;
     transition: background-color 0.2s ease, color 0.2s ease;
 }
-.header-btn:hover {
-    background-color: var(--c-bg-secondary);
+.header-btn:hover, .btn-icon:hover {
+    background-color: var(--c-bg-secondary-hover);
     color: var(--c-primary);
 }
-.header-btn svg {
+.header-btn svg, .btn-icon svg {
     width: 24px;
     height: 24px;
 }
-.header-btn:disabled {
+.header-btn:disabled, .btn-icon:disabled {
     opacity: 0.4;
     cursor: not-allowed;
 }
-.header-btn:disabled:hover {
+.header-btn:disabled:hover, .btn-icon:disabled:hover {
     background-color: transparent;
     color: var(--c-icon);
 }
@@ -779,11 +779,10 @@ header h1.is-overflowing > span {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem;
+    padding: 0;
     background-color: var(--c-bg-secondary);
     border: 1px solid var(--c-border);
     border-radius: 10px;
-    cursor: pointer;
     transition: all 0.2s ease;
 }
 .selector-list li:hover {
@@ -792,6 +791,24 @@ header h1.is-overflowing > span {
     border-color: var(--c-primary);
     background-color: var(--c-bg-card);
 }
+.selector-list-item-main {
+    flex-grow: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    cursor: pointer;
+}
+.selector-list-settings-btn {
+    flex-shrink: 0;
+    margin-right: 0.75rem;
+    padding: 0.6rem;
+}
+.selector-list-settings-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
 .selector-list-item-content {
     display: flex;
     align-items: center;
@@ -983,6 +1000,22 @@ header h1.is-overflowing > span {
 .file-item-error-tooltip:hover .tooltip-text {
     visibility: visible;
     opacity: 1;
+}
+
+/* --- Upload Success Section --- */
+.upload-success-container {
+    background: var(--c-bg-secondary);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--c-border);
+    margin-top: 2rem;
+    animation: fadeIn 0.4s ease-out;
+}
+.upload-success-container .form-group {
+    margin-bottom: 1rem;
+}
+.upload-success-container .btn {
+    width: 100%;
 }
 
 /* --- Settings Dropdown --- */

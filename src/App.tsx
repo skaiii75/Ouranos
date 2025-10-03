@@ -116,9 +116,21 @@ export const App = () => {
   const [isManagingBuckets, setIsManagingBuckets] = useState(false);
   const [workerVersion, setWorkerVersion] = useState<string | null>(null);
 
-  // R2 upload status for single file
+  // R2 upload status
   const [r2UploadStatus, setR2UploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
   const [r2ObjectKey, setR2ObjectKey] = useState<string | null>(null);
+  const [lastUploadedKeys, setLastUploadedKeys] = useState<string[]>([]);
+  const [r2PublicDomains, setR2PublicDomains] = useState<{ [key: string]: string }>(() => {
+      try {
+          const stored = localStorage.getItem('ouranos-r2-public-domains');
+          return stored ? JSON.parse(stored) : {};
+      } catch (e) {
+          logger.error("Impossible de parser les domaines R2 depuis le localStorage", e);
+          return {};
+      }
+  });
+  const [copySuccess, setCopySuccess] = useState(false);
+
 
   // File state (single file mode)
   const [file, setFile] = useState<File | null>(null);
@@ -303,6 +315,7 @@ export const App = () => {
       setBatchProgress({});
       setIsBatchProcessing(false);
       
+      setLastUploadedKeys([]);
       setIsLoading(false);
       setError(null);
       logger.debug('Fichier et état de compression nettoyés.');
@@ -434,6 +447,7 @@ export const App = () => {
     setIsLoading(true);
     setR2UploadStatus('idle');
     setR2ObjectKey(null);
+    setLastUploadedKeys([]);
     logger.debug('Déclenchement de la compression d\'image (debounced)');
 
     debounceTimeoutRef.current = window.setTimeout(() => {
@@ -608,6 +622,7 @@ export const App = () => {
     setIsLoading(true);
     setCompressedResult(null);
     setError(null);
+    setLastUploadedKeys([]);
     logger.info('Démarrage de la compression vidéo...', { format: outputFormat, quality });
 
     try {
@@ -654,6 +669,7 @@ export const App = () => {
       setR2UploadStatus('uploading');
       setR2ObjectKey(null);
       setError(null);
+      setLastUploadedKeys([]);
 
       try {
           const projectPath = selectedProject || '';
@@ -664,6 +680,7 @@ export const App = () => {
 
           setR2UploadStatus('success');
           setR2ObjectKey(finalObjectKey);
+          setLastUploadedKeys([finalObjectKey]);
           logger.info('Fichier téléversé avec succès sur R2', { key: finalObjectKey });
       } catch (e: any) {
           logger.error('Échec du téléversement vers R2', { error: e.message, stack: e.stack });
@@ -705,6 +722,8 @@ export const App = () => {
         logger.info('Démarrage du traitement par lot.', { count: batchFiles.length });
         setIsBatchProcessing(true);
         setError(null);
+        setLastUploadedKeys([]);
+        const successfulKeys: string[] = [];
         let hasErrors = false;
 
         for (const batchItem of batchFiles) {
@@ -753,7 +772,7 @@ export const App = () => {
 
 
                 await uploadFileToR2(workerUrl, selectedBucket, objectKey, blobToUpload, blobToUpload.type);
-
+                successfulKeys.push(objectKey);
                 setBatchProgress(p => ({ ...p, [id]: { ...p[id], status: 'success' } }));
                 logger.info(`Fichier traité et téléversé avec succès: ${objectKey}`);
 
@@ -764,12 +783,13 @@ export const App = () => {
             }
         }
         setIsBatchProcessing(false);
+        setLastUploadedKeys(successfulKeys);
         logger.info('Traitement par lot terminé.');
 
         if (hasErrors) {
             setError("Certains fichiers n'ont pas pu être traités. Vérifiez les statuts dans la liste ci-dessus.");
-        } else {
-            const fileCount = batchFiles.length;
+        } else if (successfulKeys.length > 0) {
+            const fileCount = successfulKeys.length;
             const plural = fileCount > 1 ? 's' : '';
             setError(`Succès ! ${fileCount} fichier${plural} traité${plural} et téléversé${plural}.`);
         }
@@ -834,13 +854,59 @@ export const App = () => {
     setBucketsError(null);
   };
 
+  const handleSavePublicDomain = (bucketName: string, domain: string) => {
+      const newDomains = { ...r2PublicDomains, [bucketName]: domain };
+      setR2PublicDomains(newDomains);
+      localStorage.setItem('ouranos-r2-public-domains', JSON.stringify(newDomains));
+      logger.info(`Domaine public pour ${bucketName} sauvegardé.`);
+  };
+
+  const renderUploadSuccess = () => {
+    if (lastUploadedKeys.length === 0) return null;
+
+    const publicDomain = selectedBucket ? r2PublicDomains[selectedBucket] : null;
+
+    const handleCopy = () => {
+        if (!publicDomain || lastUploadedKeys.length === 0) return;
+        const urls = lastUploadedKeys.map(key => `https://${publicDomain.replace(/\/$/, '')}/${key}`).join('\n');
+        navigator.clipboard.writeText(urls).then(() => {
+            setCopySuccess(true);
+            setTimeout(() => setCopySuccess(false), 2000);
+        });
+    };
+
+    return html`
+        <div class="upload-success-container">
+            <div class="alert alert-success">
+                <strong>${lastUploadedKeys.length} fichier(s) téléversé(s) avec succès !</strong>
+            </div>
+            ${publicDomain ? html`
+                <button class="btn btn-secondary" onClick=${handleCopy} style="margin-top: 1rem;">
+                    ${copySuccess ? '✓ Copié !' : `Copier ${lastUploadedKeys.length} URL(s)`}
+                </button>
+            ` : html`
+                <div class="alert alert-info" style="text-align: left; font-size: 0.9rem; margin-top: 1rem;">
+                    <strong>Pour copier les URLs publiques</strong>, vous devez d'abord configurer le domaine public pour le bucket <strong>${selectedBucket}</strong>.
+                    <br/><br/>
+                    <button class="btn btn-secondary" style="width: auto; padding: 0.5rem 1rem;" onClick=${goBackToBucketSelection}>
+                        Configurer le domaine
+                    </button>
+                </div>
+            `}
+        </div>
+    `;
+  };
+
+
   const renderContent = () => {
     if (!selectedBucket) {
       return html`<${BucketSelector} 
         buckets=${buckets}
         isLoading=${bucketsLoading}
         error=${bucketsError}
-        onSelectBucket=${handleSelectBucket} 
+        onSelectBucket=${handleSelectBucket}
+        r2PublicDomains=${r2PublicDomains}
+        onSavePublicDomain=${handleSavePublicDomain}
       />`;
     }
 
@@ -857,7 +923,8 @@ export const App = () => {
     }
 
     if (batchFiles.length > 0) {
-        return html`<${BatchProcessor} 
+        return html`
+          <${BatchProcessor} 
             files=${batchFiles}
             progress=${batchProgress}
             imageOptions=${batchImageOptions}
@@ -869,7 +936,9 @@ export const App = () => {
             onClear=${resetAllFileStates}
             onAddFiles=${handleAddBatchFiles}
             onRemoveFile=${handleRemoveBatchFile}
-        />`;
+          />
+          ${!isBatchProcessing && renderUploadSuccess()}
+        `;
     }
     
     if (!file) {
@@ -919,11 +988,7 @@ export const App = () => {
               ${r2ButtonText}
             </button>
         </div>
-        ${r2UploadStatus === 'success' && r2ObjectKey && html`
-          <div class="alert alert-success" style="margin-top: 1rem; text-align: center;">
-            Fichier enregistré sur R2 : <br/><strong>${selectedBucket}/${r2ObjectKey}</strong>
-          </div>
-        `}
+        ${renderUploadSuccess()}
       `;
     }
 
@@ -995,11 +1060,7 @@ export const App = () => {
                 </button>
             `}
         </div>
-        ${r2UploadStatus === 'success' && r2ObjectKey && html`
-          <div class="alert alert-success" style="margin-top: 1rem; text-align: center;">
-            Fichier enregistré sur R2 : <br/><strong>${selectedBucket}/${r2ObjectKey}</strong>
-          </div>
-        `}
+        ${renderUploadSuccess()}
       `;
     }
     
