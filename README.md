@@ -4,8 +4,13 @@
 
 Ouranos is a sleek, powerful, and user-friendly web application designed to streamline your media workflow with Cloudflare R2. It provides an elegant interface for client-side image and video compression, coupled with direct uploads to your R2 buckets via a companion Cloudflare Worker.
 
-![Ouranos Screenshot Placeholder](https://i.imgur.com/gC5h5x0.png)
+<p align="center">
 
+
+  <img src="https://pub-47a9495fddc34f71be81eaf74ad8daf7.r2.dev/ouranos-image2.webp" width="200" alt="Ouranos LOGO">
+
+
+</p>
 ---
 
 ## ✨ Features
