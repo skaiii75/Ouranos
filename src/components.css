@@ -1,0 +1,302 @@
+/* Buttons */
+.btn {
+  font-family: var(--font-family);
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 10px; /* Softer radius */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.btn:hover:not(.disabled):not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+}
+
+.btn:active:not(.disabled):not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.btn.disabled,
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-primary {
+  background-image: var(--c-primary-gradient);
+  color: white;
+}
+
+.btn-secondary {
+  background-color: var(--c-bg-secondary);
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+  box-shadow: none;
+}
+.btn-secondary:not(.disabled):not(:disabled):hover {
+    background-color: var(--c-bg-secondary-hover);
+    border-color: var(--c-border-hover);
+    transform: translateY(-2px);
+}
+.btn-secondary:active:not(.disabled):not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-success {
+  background-color: var(--c-success);
+  color: white;
+}
+
+.btn-success:not(.disabled):not(:disabled):hover {
+  background-color: var(--c-success-hover);
+}
+
+.header-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    color: var(--c-icon);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+.header-btn:hover {
+    background-color: var(--c-bg-secondary);
+    color: var(--c-primary);
+}
+.header-btn svg {
+    width: 24px;
+    height: 24px;
+}
+.header-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.header-btn:disabled:hover {
+    background-color: transparent;
+    color: var(--c-icon);
+}
+
+.header-back-btn {
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 999px; /* Pill shape */
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: var(--c-bg-secondary);
+  color: var(--c-text);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.header-back-btn:hover {
+    background-color: var(--c-bg-secondary-hover);
+    transform: scale(1.05);
+}
+.header-back-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.btn-delete {
+  background: none;
+  border: none;
+  color: var(--c-text-light);
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 50%;
+  line-height: 1;
+  margin-left: 1rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+.btn-delete svg {
+    width: 20px;
+    height: 20px;
+}
+
+.btn-delete:hover {
+  color: var(--c-error);
+  background-color: var(--c-bg-error-soft);
+  transform: scale(1.1);
+}
+
+.copy-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: var(--c-bg-secondary);
+    color: var(--c-text);
+    border: 1px solid var(--c-border);
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+.copy-btn:hover {
+    background: var(--c-bg-secondary-hover);
+}
+.copy-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Forms & Inputs */
+.actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.option label {
+  font-weight: 500;
+  color: var(--c-text-light);
+  font-size: 0.9rem;
+}
+
+.option select,
+.option input[type="range"] {
+  width: 100%;
+  padding: 0.6rem;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  background-color: var(--c-bg-input);
+  color: var(--c-text);
+  font-family: var(--font-family);
+  font-size: 1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.option select:focus,
+.option input:focus {
+    outline: none;
+    border-color: var(--c-primary);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
+}
+
+.quality-slider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.quality-slider input[type="range"] {
+  flex-grow: 1;
+  padding: 0;
+}
+.quality-slider span {
+  font-weight: 500;
+  width: 50px;
+  text-align: right;
+}
+
+/* Alerts */
+.alert {
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  margin-bottom: 0; /* Margin handled by container gap */
+  position: relative;
+  cursor: pointer;
+}
+.alert-danger {
+  background-color: var(--c-bg-error-soft);
+  color: var(--c-error);
+  border-color: var(--c-error);
+}
+.alert-success {
+  background-color: var(--c-bg-success-soft);
+  color: var(--c-success);
+  border-color: var(--c-success);
+}
+.alert-info {
+  background-color: var(--c-bg-info-soft);
+  color: var(--c-text-info);
+  border-color: var(--c-primary-light);
+}
+
+/* Loader */
+.loader {
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spinner-border .75s linear infinite;
+  flex-shrink: 0;
+}
+
+/* File Status */
+.file-status {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.file-status-pending {
+    background-color: var(--c-bg-secondary-hover);
+    color: var(--c-text-light);
+}
+
+.file-status-success {
+    background-color: var(--c-bg-success-soft);
+    color: var(--c-success);
+}
+
+.file-status-error {
+    background-color: var(--c-bg-error-soft);
+    color: var(--c-error);
+}
+
+.file-status-processing .loader {
+    width: 12px;
+    height: 12px;
+    border-width: 1.5px;
+}
+.file-status-processing {
+    background-color: var(--c-bg-info-soft);
+    color: var(--c-primary);
+}

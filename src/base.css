@@ -1,0 +1,214 @@
+:root {
+  --font-family: 'Poppins', sans-serif;
+
+  /* Light Theme */
+  --c-primary: #007aff;
+  --c-primary-light: #4da3ff;
+  --c-primary-hover: #005bb5;
+  --c-primary-gradient: linear-gradient(45deg, #007aff, #0056b3);
+  --c-text: #212529;
+  --c-text-light: #6c757d;
+  --c-bg: #f0f2f5; /* Slightly darker background for depth */
+  --c-bg-card: #ffffff;
+  --c-bg-card-backdrop: rgba(255, 255, 255, 0.7);
+  --c-border: #dee2e6;
+  --c-border-hover: #adb5bd;
+  --c-bg-input: #ffffff;
+  --c-success: #28a745;
+  --c-success-hover: #218838;
+  --c-error: #dc3545;
+  --c-bg-success-soft: #d4edda;
+  --c-bg-error-soft: #f8d7da;
+  --c-bg-info-soft: #e2f3fe; /* Softer blue */
+  --c-text-info: #0c5460;
+  --c-shadow: 0 12px 24px rgba(0, 0, 0, 0.06); /* Softer shadow */
+  --c-shadow-hover: 0 16px 32px rgba(0, 0, 0, 0.1);
+  --c-bg-secondary: #f8f9fa;
+  --c-bg-secondary-hover: #e9ecef;
+  --c-icon: #495057;
+}
+
+[data-theme='dark'] {
+  --c-primary: #0a84ff;
+  --c-primary-light: #52a8ff;
+  --c-primary-hover: #3695fa;
+  --c-primary-gradient: linear-gradient(45deg, #0a84ff, #3d9dff);
+  --c-text: #e0e0e0;
+  --c-text-light: #8e8e93;
+  --c-bg: #000000; /* True black background */
+  --c-bg-card: #1c1c1e;
+  --c-bg-card-backdrop: rgba(28, 28, 30, 0.75);
+  --c-border: #3a3a3c;
+  --c-border-hover: #58585a;
+  --c-bg-input: #2c2c2e;
+  --c-success: #30d158;
+  --c-success-hover: #29b34a;
+  --c-error: #ff453a;
+  --c-bg-success-soft: #203e2c;
+  --c-bg-error-soft: #5e2a2a;
+  --c-bg-info-soft: #1d3c52;
+  --c-text-info: #9eeaf9;
+  --c-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+  --c-shadow-hover: 0 16px 32px rgba(0, 0, 0, 0.3);
+  --c-bg-secondary: #2c2c2e;
+  --c-bg-secondary-hover: #3a3a3c;
+  --c-icon: #b0b0b0;
+}
+
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  background-color: var(--c-bg);
+  background-image: radial-gradient(circle at 10% 10%, var(--c-bg-secondary) 0%, transparent 50%);
+  color: var(--c-text);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 2rem;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#root {
+  width: 100%;
+  max-width: 600px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.container {
+  width: 100%;
+  padding: 2rem;
+  background-color: var(--c-bg-card);
+  border: 1px solid var(--c-border);
+  border-radius: 18px; /* Slightly more rounded */
+  box-shadow: var(--c-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem; /* Increased vertical space */
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+main {
+    animation: fadeIn 0.4s 0.1s ease-out forwards;
+    opacity: 0; /* Required for animation */
+}
+
+header {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0; /* Margin is now handled by container gap */
+  animation: fadeIn 0.4s ease-out forwards;
+  position: relative; /* Ensure header creates a stacking context */
+  z-index: 10;      /* Place header above other container children */
+}
+
+.header-left {
+    grid-column: 1 / 2;
+    justify-self: start;
+}
+
+header h1 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--c-text);
+  margin: 0;
+  text-align: center;
+  grid-column: 2 / 3;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* Marquee title animation for overflowing text */
+header h1 > span {
+  display: inline-block; /* Required for transform */
+}
+
+header h1.is-overflowing > span {
+  padding-left: 0rem; /* Add some space before starting the scroll */
+  animation: marquee 2s ease-in-out infinite alternate;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    grid-column: 3 / 4;
+    justify-self: end;
+}
+
+.app-footer {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.8rem;
+    color: var(--c-text-light);
+    animation: fadeIn 0.4s 0.2s ease-out forwards;
+    opacity: 0;
+}
+
+@keyframes spinner-border {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeInDropdown {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes marquee {
+  0%, 20% { /* Initial pause */
+    transform: translateX(0);
+  }
+  80%, 100% { /* Scrolled and paused */
+    transform: translateX(var(--marquee-translate-x, -50px));
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 1rem;
+  }
+  .container {
+    padding: 1.5rem 1rem;
+  }
+  header {
+    grid-template-columns: auto 1fr auto; /* More flexible layout */
+    gap: 0.5rem;
+  }
+  header h1 {
+    font-size: 1.5rem;
+    text-align: left; /* Better for overflow on small screens */
+    margin: 0 0.25rem;
+  }
+  .options-grid {
+    grid-template-columns: 1fr;
+  }
+  .actions {
+      flex-direction: column;
+  }
+  .header-back-btn {
+      font-size: 0.8rem;
+      padding: 0.4rem 0.8rem;
+  }
+  .header-back-btn svg {
+      width: 16px;
+      height: 16px;
+  }
+}
