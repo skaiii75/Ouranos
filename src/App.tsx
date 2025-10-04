@@ -11,13 +11,17 @@ import { BucketSelector } from './components/BucketSelector';
 import { BucketManager } from './components/BucketManager';
 import { WorkerUrlSetup } from './components/WorkerUrlSetup';
 import { LogViewer } from './components/LogViewer';
+import { FileBrowser } from './components/FileBrowser';
+import { PreviewModal } from './components/PreviewModal';
+import { ConfirmationModal } from './components/ConfirmationModal';
 import { slugify, formatBytes } from './utils/formatters';
 import { deleteProjectFromBucket } from './utils/db';
-import { uploadFileToR2, getAvailableBuckets, getFoldersForBucket } from './utils/r2';
+import { uploadFileToR2, getAvailableBuckets, getFoldersForBucket, getObjectsForPrefix, R2Object, deleteObjects, listKeysForPrefixes } from './utils/r2';
 import { logger } from './utils/logger';
 import { buildProjectTree, ProjectNode } from './utils/tree';
 
 type FileType = 'image' | 'video' | null;
+type ViewMode = 'browse' | 'upload';
 
 interface CompressedData {
     url: string;
@@ -115,6 +119,10 @@ export const App = () => {
   const [isUploadingToRoot, setIsUploadingToRoot] = useState<boolean>(false);
   const [isManagingBuckets, setIsManagingBuckets] = useState(false);
   const [workerVersion, setWorkerVersion] = useState<string | null>(null);
+  const [objects, setObjects] = useState<R2Object[]>([]);
+  const [folders, setFolders] = useState<string[]>([]);
+  const [objectsLoading, setObjectsLoading] = useState(false);
+  const [objectsError, setObjectsError] = useState<string | null>(null);
 
   // R2 upload status
   const [r2UploadStatus, setR2UploadStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
@@ -157,9 +165,18 @@ export const App = () => {
   const [theme, setTheme] = useState('light');
   const [isLogViewerOpen, setIsLogViewerOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('browse');
+  const [selectedObject, setSelectedObject] = useState<R2Object | null>(null);
   const debounceTimeoutRef = useRef<number | null>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
+  
+  // Selection Mode State
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [copyUrlSuccess, setCopyUrlSuccess] = useState(false);
+
 
   // Theme management
   useEffect(() => {
@@ -271,14 +288,36 @@ export const App = () => {
     }
   }, [selectedBucket, workerUrl]);
   
+    const fetchObjects = useCallback(async (prefix: string) => {
+        if (!selectedBucket || !workerUrl) return;
+
+        logger.info(`Récupération des objets pour le préfixe: "${prefix}"`);
+        setObjectsLoading(true);
+        setObjectsError(null);
+        try {
+            const response = await getObjectsForPrefix(workerUrl, selectedBucket, prefix);
+            setObjects(response.objects);
+            setFolders(response.delimitedPrefixes);
+            logger.info(`${response.objects.length} objets et ${response.delimitedPrefixes.length} dossiers récupérés.`);
+        } catch (e: any) {
+            logger.error(`Impossible de récupérer les objets pour le préfixe "${prefix}"`, e);
+            setObjectsError(`Impossible de récupérer la liste des fichiers.`);
+        } finally {
+            setObjectsLoading(false);
+        }
+    }, [selectedBucket, workerUrl]);
+
   // Refresh handler
   const handleRefresh = useCallback(() => {
-    if (selectedBucket && !selectedProject) {
-      fetchProjects();
-    } else if (!selectedBucket) {
-      fetchBuckets();
-    }
-  }, [selectedBucket, selectedProject, fetchBuckets, fetchProjects]);
+      const currentPrefix = selectedProject || (isUploadingToRoot ? '' : null);
+      if (selectedBucket && currentPrefix !== null) {
+          fetchObjects(currentPrefix);
+      } else if (selectedBucket && !selectedProject) {
+        fetchProjects();
+      } else if (!selectedBucket) {
+        fetchBuckets();
+      }
+  }, [selectedBucket, selectedProject, isUploadingToRoot, fetchBuckets, fetchProjects, fetchObjects]);
 
   // Fetch buckets when workerUrl is available
   useEffect(() => {
@@ -295,6 +334,18 @@ export const App = () => {
       setProjects([]);
     }
   }, [selectedBucket, fetchProjects]);
+  
+  // Load objects when a project is selected
+  useEffect(() => {
+      const currentPrefix = selectedProject || (isUploadingToRoot ? '' : null);
+      if (selectedBucket && currentPrefix !== null) {
+          setViewMode('browse');
+          fetchObjects(currentPrefix);
+      } else {
+          setObjects([]);
+          setFolders([]);
+      }
+  }, [selectedBucket, selectedProject, isUploadingToRoot, fetchObjects]);
   
   // Cleanup logic
   const resetAllFileStates = useCallback(() => {
@@ -315,9 +366,13 @@ export const App = () => {
       setBatchProgress({});
       setIsBatchProcessing(false);
       
+      // General UI cleanup
       setLastUploadedKeys([]);
       setIsLoading(false);
       setError(null);
+      setViewMode('browse');
+      setIsSelectionMode(false);
+      setSelectedItems(new Set());
       logger.debug('Fichier et état de compression nettoyés.');
   }, [previewUrl]);
 
@@ -332,12 +387,16 @@ export const App = () => {
   const handleSelectProject = useCallback((projectPath: string) => {
     logger.info(`dossier sélectionné: ${projectPath}`);
     setSelectedProject(projectPath);
+    setIsSelectionMode(false);
+    setSelectedItems(new Set());
     setError(null);
   }, []);
   
   const handleUploadToRoot = useCallback(() => {
     logger.info(`Préparation au téléversement à la racine du bucket: ${selectedBucket}`);
     setIsUploadingToRoot(true);
+    setIsSelectionMode(false);
+    setSelectedItems(new Set());
     setError(null);
   }, [selectedBucket]);
   
@@ -345,6 +404,9 @@ export const App = () => {
     resetAllFileStates();
     setSelectedProject(null);
     setIsUploadingToRoot(false);
+    setObjects([]);
+    setFolders([]);
+    setObjectsError(null);
   }, [resetAllFileStates]);
 
   const goBackToBucketSelection = useCallback(() => {
@@ -352,6 +414,9 @@ export const App = () => {
     setSelectedProject(null);
     setSelectedBucket(null);
     setIsUploadingToRoot(false);
+    setObjects([]);
+    setFolders([]);
+    setObjectsError(null);
   }, [resetAllFileStates]);
 
   // Project handlers
@@ -395,7 +460,7 @@ export const App = () => {
   
   // File handlers
   const handleFilesSelect = useCallback((selectedFiles: File[]) => {
-    resetAllFileStates();
+    // We no longer call resetAllFileStates here as we are already in the upload view.
     setError(null);
 
     const validFiles = selectedFiles.filter(f => {
@@ -436,7 +501,7 @@ export const App = () => {
       }, {} as { [id: string]: BatchFileStatus });
       setBatchProgress(initialProgress);
     }
-  }, [resetAllFileStates]);
+  }, []);
   
   // Image compression effect (single file)
   useEffect(() => {
@@ -860,6 +925,118 @@ export const App = () => {
       localStorage.setItem('ouranos-r2-public-domains', JSON.stringify(newDomains));
       logger.info(`Domaine public pour ${bucketName} sauvegardé.`);
   };
+  
+    // --- Selection Mode Handlers ---
+    const toggleSelectionMode = useCallback(() => {
+        setIsSelectionMode(prev => !prev);
+        setSelectedItems(new Set()); // Always clear selection when toggling mode
+    }, []);
+
+    const handleSelectItem = useCallback((key: string) => {
+        setSelectedItems(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(key)) {
+                newSet.delete(key);
+            } else {
+                newSet.add(key);
+            }
+            return newSet;
+        });
+    }, []);
+
+    const handleSelectAll = useCallback(() => {
+        if (selectedItems.size === (objects.length + folders.length)) {
+            setSelectedItems(new Set());
+        } else {
+            const allItemKeys = [...folders, ...objects.map(o => o.key)];
+            setSelectedItems(new Set(allItemKeys));
+        }
+    }, [objects, folders, selectedItems.size]);
+
+    const partitionSelectedItems = useCallback(() => {
+        const keys: string[] = [];
+        const prefixes: string[] = [];
+        selectedItems.forEach(item => {
+            if (item.endsWith('/')) {
+                prefixes.push(item);
+            } else {
+                keys.push(item);
+            }
+        });
+        return { keys, prefixes };
+    }, [selectedItems]);
+
+    const handleDeleteSelected = useCallback(() => {
+        if (selectedItems.size > 0) {
+            setShowDeleteConfirm(true);
+        }
+    }, [selectedItems]);
+
+    const handleConfirmDelete = useCallback(async () => {
+        if (!workerUrl || !selectedBucket || selectedItems.size === 0) return;
+
+        const { keys, prefixes } = partitionSelectedItems();
+        logger.info(`Demande de suppression pour ${keys.length} fichiers et ${prefixes.length} dossiers.`);
+        
+        setShowDeleteConfirm(false);
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            await deleteObjects(workerUrl, selectedBucket, { keys, prefixes });
+            const count = selectedItems.size;
+            setError(`Succès : ${count} élément(s) supprimé(s).`);
+            logger.info(`${count} élément(s) supprimé(s) avec succès.`);
+        } catch (e: any) {
+            logger.error('Erreur lors de la suppression des éléments', e);
+            setError(`Erreur lors de la suppression : ${e.message}`);
+        } finally {
+            setIsLoading(false);
+            setSelectedItems(new Set());
+            setIsSelectionMode(false);
+            handleRefresh(); // Refresh the file list
+        }
+    }, [workerUrl, selectedBucket, selectedItems, partitionSelectedItems, handleRefresh]);
+    
+    const handleCopyUrlsSelected = useCallback(async () => {
+        if (!workerUrl || !selectedBucket || selectedItems.size === 0) return;
+        const publicDomain = r2PublicDomains[selectedBucket];
+        if (!publicDomain) {
+            setError("Veuillez d'abord configurer le domaine public pour ce bucket.");
+            return;
+        }
+
+        const { keys, prefixes } = partitionSelectedItems();
+        setIsLoading(true);
+        setError(null);
+        setCopyUrlSuccess(false);
+
+        try {
+            let allKeysToCopy = [...keys];
+            if (prefixes.length > 0) {
+                const keysFromPrefixes = await listKeysForPrefixes(workerUrl, selectedBucket, prefixes);
+                allKeysToCopy.push(...keysFromPrefixes);
+            }
+            
+            if (allKeysToCopy.length === 0) {
+                setError("Aucun fichier à copier (les dossiers sélectionnés sont peut-être vides).");
+                return;
+            }
+
+            const urls = allKeysToCopy.map(key => `https://${publicDomain.replace(/\/$/, '')}/${key}`).join('\n');
+            await navigator.clipboard.writeText(urls);
+            
+            setCopyUrlSuccess(true);
+            setTimeout(() => setCopyUrlSuccess(false), 2500);
+            
+            logger.info(`${allKeysToCopy.length} URLs copiées dans le presse-papiers.`);
+        } catch (e: any) {
+            logger.error("Erreur lors de la copie des URLs", e);
+            setError(`Erreur lors de la copie des URLs : ${e.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [workerUrl, selectedBucket, selectedItems, partitionSelectedItems, r2PublicDomains]);
 
   const renderUploadSuccess = () => {
     if (lastUploadedKeys.length === 0) return null;
@@ -921,7 +1098,32 @@ export const App = () => {
         isLoading=${projectsLoading}
       />`;
     }
-
+    
+    // File Browser View
+    if (viewMode === 'browse') {
+        return html`
+            <${FileBrowser}
+                objects=${objects}
+                folders=${folders}
+                isLoading=${objectsLoading}
+                error=${objectsError}
+                publicDomain=${r2PublicDomains[selectedBucket] || null}
+                onUploadClick=${() => setViewMode('upload')}
+                onObjectClick=${(obj: R2Object) => setSelectedObject(obj)}
+                onFolderClick=${handleSelectProject}
+                isSelectionMode=${isSelectionMode}
+                toggleSelectionMode=${toggleSelectionMode}
+                selectedItems=${selectedItems}
+                onSelectItem=${handleSelectItem}
+                onSelectAll=${handleSelectAll}
+                onDeleteSelected=${handleDeleteSelected}
+                onCopyUrlsSelected=${handleCopyUrlsSelected}
+                copyUrlSuccess=${copyUrlSuccess}
+            />
+        `;
+    }
+    
+    // Upload View
     if (batchFiles.length > 0) {
         return html`
           <${BatchProcessor} 
@@ -970,7 +1172,7 @@ export const App = () => {
             setQuality=${setQuality}
         />
         <div class="actions">
-            <button class="btn btn-secondary" onClick=${() => { resetAllFileStates(); setError(null); }}>Changer de fichier</button>
+            <button class="btn btn-secondary" onClick=${() => { setFile(null); setPreviewUrl(null); setCompressedResult(null); setError(null); }}>Changer de fichier</button>
             <a 
                 href=${isDownloadDisabled ? '#' : compressedResult.url} 
                 download=${isDownloadDisabled ? '' : compressedResult.name} 
@@ -1033,7 +1235,7 @@ export const App = () => {
             disabled=${isLoading}
         />
         <div class="actions">
-            <button class="btn btn-secondary" onClick=${() => { resetAllFileStates(); setError(null); }}>Changer de fichier</button>
+            <button class="btn btn-secondary" onClick=${() => { setFile(null); setPreviewUrl(null); setCompressedResult(null); setError(null); }}>Changer de fichier</button>
             ${!compressedResult ? html`
                 <button class="btn btn-primary" onClick=${handleVideoCompress} disabled=${isLoading}>
                     ${isLoading ? html`<div class="loader"></div> Compression...` : 'Compresser'}
@@ -1072,13 +1274,18 @@ export const App = () => {
     let title = "Ouranos";
 
     const goBack = () => {
+        if (selectedObject) {
+            setSelectedObject(null);
+            return;
+        }
         if (file || batchFiles.length > 0) {
             resetAllFileStates();
+        } else if (viewMode === 'upload') {
+            setViewMode('browse');
         } else if (selectedProject || isUploadingToRoot) {
-            setSelectedProject(null);
-            setIsUploadingToRoot(false);
+            goBackToProjectSelection();
         } else if (selectedBucket) {
-            setSelectedBucket(null);
+            goBackToBucketSelection();
         }
     };
     
@@ -1093,11 +1300,10 @@ export const App = () => {
              ${backButton}
           </div>
           <h1 ref=${titleRef}>
-            ${!selectedBucket && html`<img src="https://pub-47a9495fddc34f71be81eaf74ad8daf7.r2.dev/ouranos-image2.webp" alt="Ouranos Logo" class="header-logo" />`}
             <span>${title}</span>
           </h1>
           <div class="header-actions">
-               <button class="header-btn" onClick=${handleRefresh} aria-label="Rafraîchir" title="Rafraîchir" disabled=${!!selectedProject || isUploadingToRoot}>
+               <button class="header-btn" onClick=${handleRefresh} aria-label="Rafraîchir" title="Rafraîchir" disabled=${!!(selectedProject && viewMode === 'upload') || (isUploadingToRoot && viewMode === 'upload')}>
                   <${RefreshIcon} />
                </button>
                <button class="header-btn" onClick=${() => setIsLogViewerOpen(true)} aria-label="Afficher les logs">
@@ -1140,6 +1346,11 @@ export const App = () => {
     </div>
     `;
   }
+  
+  const publicDomain = selectedBucket ? r2PublicDomains[selectedBucket] : null;
+  const publicUrl = selectedObject && publicDomain 
+        ? `https://${publicDomain.replace(/\/$/, '')}/${selectedObject.key}` 
+        : null;
 
   return html`
     <div class="container">
@@ -1166,5 +1377,21 @@ export const App = () => {
      ${isLogViewerOpen && html`
         <${LogViewer} onClose=${() => setIsLogViewerOpen(false)} />
     `}
+    ${selectedObject && publicUrl && html`
+        <${PreviewModal} 
+            object=${selectedObject}
+            publicUrl=${publicUrl}
+            onClose=${() => setSelectedObject(null)}
+        />
+    `}
+    <${ConfirmationModal}
+        isOpen=${showDeleteConfirm}
+        onClose=${() => setShowDeleteConfirm(false)}
+        onConfirm=${handleConfirmDelete}
+        title="Confirmer la suppression"
+    >
+        <p>Êtes-vous sûr de vouloir supprimer définitivement <strong>${selectedItems.size}</strong> élément(s) ?</p>
+        <p>Cette action est irréversible.</p>
+    </${ConfirmationModal}>
   `;
 };

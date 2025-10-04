@@ -57,6 +57,25 @@ export interface BucketsResponse {
     debug_env_keys?: string[];
 }
 
+export interface R2Object {
+    key: string;
+    version: string;
+    size: number;
+    etag: string;
+    uploaded: string; // ISO 8601 date string
+    httpMetadata?: {
+        contentType?: string;
+    };
+}
+
+export interface ListObjectsResponse {
+    objects: R2Object[];
+    delimitedPrefixes: string[];
+    cursor?: string;
+    truncated: boolean;
+}
+
+
 /**
  * Fetches the available R2 bucket bindings from the worker.
  * The worker should have a GET /buckets endpoint.
@@ -90,6 +109,29 @@ export const getFoldersForBucket = async (workerUrl: string, bucketBinding: stri
         throw new Error("La réponse de l'API pour les dossiers est invalide.");
     }
     return response.folders;
+};
+
+/**
+ * Fetches the list of objects (files) for a given prefix from an R2 bucket via the worker.
+ * @param workerUrl The full URL of the deployed Cloudflare worker.
+ * @param bucketBinding The binding name of the bucket.
+ * @param prefix The folder path to list objects from.
+ * @param cursor Optional cursor for pagination.
+ * @returns A promise that resolves to an object containing the list of objects and pagination info.
+ */
+export const getObjectsForPrefix = async (workerUrl: string, bucketBinding: string, prefix: string, cursor?: string): Promise<ListObjectsResponse> => {
+    const response = await apiFetch(workerUrl, '/list-objects', {
+        method: 'GET',
+        headers: {
+            'X-Bucket-Binding': bucketBinding,
+            'X-Prefix': prefix,
+            ...(cursor && { 'X-Cursor': cursor }),
+        }
+    });
+    if (!response || !Array.isArray(response.objects)) {
+        throw new Error("La réponse de l'API pour les objets est invalide.");
+    }
+    return response as ListObjectsResponse;
 };
 
 /**
@@ -135,4 +177,37 @@ export const uploadFileToR2 = async (workerUrl: string, bucketBinding: string, o
         }
         throw error;
     }
+};
+
+/**
+ * Deletes multiple objects and/or prefixes from R2.
+ * @param workerUrl The full URL of the deployed Cloudflare worker.
+ * @param bucketBinding The binding name of the bucket.
+ * @param items An object containing arrays of keys and prefixes to delete.
+ */
+export const deleteObjects = async (workerUrl: string, bucketBinding: string, items: { keys: string[], prefixes: string[] }): Promise<void> => {
+    await apiFetch(workerUrl, '/delete-objects', {
+        method: 'POST',
+        headers: { 'X-Bucket-Binding': bucketBinding },
+        body: JSON.stringify(items),
+    });
+};
+
+/**
+ * Fetches all object keys under a list of prefixes.
+ * @param workerUrl The full URL of the deployed Cloudflare worker.
+ * @param bucketBinding The binding name of the bucket.
+ * @param prefixes An array of prefixes to search.
+ * @returns A promise that resolves to an array of all found object keys.
+ */
+export const listKeysForPrefixes = async (workerUrl: string, bucketBinding: string, prefixes: string[]): Promise<string[]> => {
+    const response = await apiFetch(workerUrl, '/list-keys-for-prefixes', {
+        method: 'POST',
+        headers: { 'X-Bucket-Binding': bucketBinding },
+        body: JSON.stringify({ prefixes }),
+    });
+    if (!response || !Array.isArray(response.keys)) {
+        throw new Error("La réponse de l'API pour la liste des clés est invalide.");
+    }
+    return response.keys;
 };

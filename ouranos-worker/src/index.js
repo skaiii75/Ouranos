@@ -32,17 +32,26 @@ export default {
 
     const url = new URL(request.url);
     try {
-      if (url.pathname === '/buckets') {
+      if (url.pathname.endsWith('/buckets')) {
         return await handleListBindings(request, env);
       }
-      if (url.pathname === '/upload-file') {
+      if (url.pathname.endsWith('/upload-file')) {
         return await handleUploadFile(request, env);
       }
-      if (url.pathname === '/list-cf-buckets') {
+      if (url.pathname.endsWith('/list-cf-buckets')) {
         return await handleListCfBuckets(request, env);
       }
-      if (url.pathname === '/list-folders') {
+      if (url.pathname.endsWith('/list-objects')) {
+        return await handleListObjects(request, env);
+      }
+      if (url.pathname.endsWith('/list-folders')) {
         return await handleListFolders(request, env);
+      }
+      if (url.pathname.endsWith('/delete-objects')) {
+        return await handleDeleteObjects(request, env);
+      }
+      if (url.pathname.endsWith('/list-keys-for-prefixes')) {
+        return await handleListKeysForPrefixes(request, env);
       }
       return new Response(JSON.stringify({ error: 'Not Found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
@@ -75,7 +84,7 @@ async function handleListBindings(request, env) {
 
   const responseBody = {
     buckets: buckets.sort(),
-    version: "1.4.0", // Version
+    version: "1.5.0", // Version
     debug_env_keys: debug_env_keys.sort(),
   };
 
@@ -185,6 +194,50 @@ async function handleListCfBuckets(request, env) {
 }
 
 /**
+ * Gère l'endpoint /list-objects
+ * Liste les objets (fichiers) et les dossiers pour un préfixe donné dans un bucket R2.
+ */
+async function handleListObjects(request, env) {
+  if (request.method !== 'GET') {
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+  const bucketBinding = request.headers.get('x-bucket-binding');
+  const prefix = request.headers.get('x-prefix') || '';
+  const cursor = request.headers.get('x-cursor') || undefined;
+
+  if (!bucketBinding) {
+    return new Response(JSON.stringify({ error: 'En-tête requis manquant: x-bucket-binding' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+  const bucket = env[bucketBinding];
+  if (!bucket) {
+    return new Response(JSON.stringify({ error: `La liaison '${bucketBinding}' est introuvable ou n'est pas un bucket R2.` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+
+  const listOptions = {
+    prefix: prefix,
+    cursor: cursor,
+    limit: 100,
+    delimiter: '/', // Pour séparer les fichiers des dossiers
+    include: ['httpMetadata'],
+  };
+
+  const listResult = await bucket.list(listOptions);
+
+  const responseBody = {
+    objects: listResult.objects,
+    delimitedPrefixes: listResult.delimitedPrefixes,
+    cursor: listResult.truncated ? listResult.cursor : undefined,
+    truncated: listResult.truncated,
+  };
+
+  return new Response(JSON.stringify(responseBody), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+/**
  * Gère l'endpoint /list-folders
  * Liste TOUS les "dossiers" (préfixes) dans un bucket R2, y compris les dossiers imbriqués.
  */
@@ -236,6 +289,76 @@ async function handleListFolders(request, env) {
   const folders = Array.from(folderPaths).sort();
 
   return new Response(JSON.stringify({ folders }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+/**
+ * Gère l'endpoint /delete-objects
+ * Supprime en masse des fichiers et/ou des dossiers (préfixes).
+ */
+async function handleDeleteObjects(request, env) {
+  if (request.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405 });
+  }
+  const bucketBinding = request.headers.get('x-bucket-binding');
+  const bucket = env[bucketBinding];
+  if (!bucket) {
+    return new Response(JSON.stringify({ error: `Binding '${bucketBinding}' not found.` }), { status: 400 });
+  }
+
+  const { keys = [], prefixes = [] } = await request.json();
+  const allKeysToDelete = new Set(keys);
+
+  for (const prefix of prefixes) {
+    let cursor = undefined;
+    while (true) {
+      const listResult = await bucket.list({ prefix, cursor });
+      listResult.objects.forEach(obj => allKeysToDelete.add(obj.key));
+      if (!listResult.truncated) break;
+      cursor = listResult.cursor;
+    }
+  }
+
+  const keysArray = Array.from(allKeysToDelete);
+  for (let i = 0; i < keysArray.length; i += 1000) {
+    const batch = keysArray.slice(i, i + 1000);
+    await bucket.delete(batch);
+  }
+
+  return new Response(JSON.stringify({ success: true, deletedCount: keysArray.length }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+/**
+ * Gère l'endpoint /list-keys-for-prefixes
+ * Récupère récursivement toutes les clés d'objet sous les préfixes donnés.
+ */
+async function handleListKeysForPrefixes(request, env) {
+  if (request.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405 });
+  }
+  const bucketBinding = request.headers.get('x-bucket-binding');
+  const bucket = env[bucketBinding];
+  if (!bucket) {
+    return new Response(JSON.stringify({ error: `Binding '${bucketBinding}' not found.` }), { status: 400 });
+  }
+  
+  const { prefixes = [] } = await request.json();
+  const allKeys = [];
+
+  for (const prefix of prefixes) {
+    let cursor = undefined;
+    while (true) {
+      const listResult = await bucket.list({ prefix, cursor });
+      listResult.objects.forEach(obj => allKeys.push(obj.key));
+      if (!listResult.truncated) break;
+      cursor = listResult.cursor;
+    }
+  }
+
+  return new Response(JSON.stringify({ keys: allKeys }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }
