@@ -75,12 +75,12 @@ export const ImageComparator = ({ originalUrl, compressedUrl, originalFile, comp
     return html`
         <div class="comparator-wrapper">
             <div class="file-details">
-                <p><strong>Fichier :</strong> ${originalFile.name}</p>
+                <p><strong>File:</strong> ${originalFile.name}</p>
                  <div class="comparator-stats">
-                    <span><strong>Original :</strong> ${formatBytes(originalFile.size)}</span>
+                    <span><strong>Original:</strong> ${formatBytes(originalFile.size)}</span>
                     ${compressedSize !== null && html`
-                        <span><strong>Compressé :</strong> ${formatBytes(compressedSize)}</span>
-                        <span class="size-reduction"><strong>Réduction :</strong> ${reduction}%</span>
+                        <span><strong>Compressed:</strong> ${formatBytes(compressedSize)}</span>
+                        <span class="size-reduction"><strong>Reduction:</strong> ${reduction}%</span>
                     `}
                 </div>
             </div>
@@ -90,7 +90,7 @@ export const ImageComparator = ({ originalUrl, compressedUrl, originalFile, comp
                     <img src=${originalUrl} alt="Original" class="comparator-image-under" draggable="false" />
                     ${compressedUrl && html`
                         <div class="comparator-image-over-wrapper" style=${{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}>
-                            <img src=${compressedUrl} alt="Compressé" class="comparator-image-over" draggable="false" />
+                            <img src=${compressedUrl} alt="Compressed" class="comparator-image-over" draggable="false" />
                         </div>
                         <div class="comparator-handle" style=${{ left: `${sliderPosition}%` }} onMouseDown=${startDragging} onTouchStart=${startTouchDragging}>
                             <div class="comparator-handle-bar"><${CompareIcon}/></div>
@@ -100,7 +100,7 @@ export const ImageComparator = ({ originalUrl, compressedUrl, originalFile, comp
                 ${isLoading && !compressedUrl && html`
                     <div class="comparator-loading-overlay">
                         <div class="loader"></div>
-                        <p>Préparation de l'aperçu...</p>
+                        <p>Preparing preview...</p>
                     </div>
                 `}
             </div>

@@ -41,7 +41,7 @@ export const PreviewModal = ({ object, publicUrl, onClose }: PreviewModalProps) 
         <div class="modal-overlay" onClick=${onClose}>
             <div class="modal-content preview-modal-content" onClick=${(e: Event) => e.stopPropagation()}>
                 <div class="modal-header preview-modal-header">
-                     <button class="header-btn" onClick=${onClose} aria-label="Fermer"><${CloseIcon} /></button>
+                     <button class="header-btn" onClick=${onClose} aria-label="Close"><${CloseIcon} /></button>
                 </div>
                 <div class="modal-body preview-modal-body">
                     ${isImage && html`<img src=${publicUrl} alt=${fileName} class="preview-modal-media" />`}
@@ -49,11 +49,11 @@ export const PreviewModal = ({ object, publicUrl, onClose }: PreviewModalProps) 
                 </div>
                  <div class="modal-footer preview-modal-footer">
                     <button class="btn btn-secondary" onClick=${handleCopy}>
-                        ${copySuccess ? '✓ Copié !' : html`<${CopyIcon} /> Copier l'URL`}
+                        ${copySuccess ? '✓ Copied!' : html`<${CopyIcon} /> Copy URL`}
                     </button>
                     <a href=${publicUrl} download=${fileName} target="_blank" class="btn btn-primary">
                         <${DownloadIcon} />
-                        <span>Télécharger</span>
+                        <span>Download</span>
                     </a>
                 </div>
             </div>

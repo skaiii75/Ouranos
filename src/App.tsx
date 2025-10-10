@@ -133,7 +133,7 @@ export const App = () => {
           const stored = localStorage.getItem('ouranos-r2-public-domains');
           return stored ? JSON.parse(stored) : {};
       } catch (e) {
-          logger.error("Impossible de parser les domaines R2 depuis le localStorage", e);
+          logger.error("Failed to parse R2 domains from localStorage", e);
           return {};
       }
   });
@@ -183,7 +183,7 @@ export const App = () => {
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     setTheme(savedTheme || (prefersDark ? 'dark' : 'light'));
-    logger.info("Application initialisée.");
+    logger.info("Application initialized.");
   }, []);
 
   useEffect(() => {
@@ -240,7 +240,7 @@ export const App = () => {
   const fetchBuckets = useCallback(async () => {
     if (!workerUrl) return;
     
-    logger.info('Tentative de récupération des buckets...');
+    logger.info('Attempting to fetch buckets...');
     setBucketsLoading(true);
     setBucketsError(null);
     setWorkerVersion(null);
@@ -251,9 +251,9 @@ export const App = () => {
       if (version) {
         setWorkerVersion(version);
       }
-      logger.info('Buckets récupérés avec succès', { availableBuckets, version });
+      logger.info('Buckets fetched successfully', { availableBuckets, version });
     } catch (e: any) {
-      logger.error('Erreur lors de la récupération des buckets', { error: e.message, stack: e.stack });
+      logger.error('Error fetching buckets', { error: e.message, stack: e.stack });
       setBucketsError(e.message);
       console.error(e);
     } finally {
@@ -265,24 +265,24 @@ export const App = () => {
   const fetchProjects = useCallback(async () => {
     if (!selectedBucket || !workerUrl) return;
 
-    logger.info(`Rafraîchissement de l'arborescence pour le bucket ${selectedBucket}...`);
+    logger.info(`Refreshing folder tree for bucket ${selectedBucket}...`);
     setProjectsLoading(true);
     setError(null);
     try {
       // Step 1: Fetch all folder paths from R2
       const r2FolderPaths = await getFoldersForBucket(workerUrl, selectedBucket);
-      logger.info(`${r2FolderPaths.length} chemins de dossiers trouvés sur R2.`);
+      logger.info(`${r2FolderPaths.length} folder paths found on R2.`);
       
       // Step 2: Build the hierarchical tree from the flat path list
       const projectTree = buildProjectTree(r2FolderPaths);
       
       // Step 3: Set the tree state
       setProjects(projectTree);
-      logger.info('Arborescence de dossiers construite avec succès.');
+      logger.info('Folder tree built successfully.');
 
     } catch (e: any) {
-      logger.error(`Impossible de rafraîchir les dossiers pour le bucket ${selectedBucket}`, e);
-      setError(`Impossible de rafraîchir l'arborescence des dossiers pour le bucket ${selectedBucket}.`);
+      logger.error(`Could not refresh folders for bucket ${selectedBucket}`, e);
+      setError(`Could not refresh the folder tree for bucket ${selectedBucket}.`);
     } finally {
       setProjectsLoading(false);
     }
@@ -291,17 +291,17 @@ export const App = () => {
     const fetchObjects = useCallback(async (prefix: string) => {
         if (!selectedBucket || !workerUrl) return;
 
-        logger.info(`Récupération des objets pour le préfixe: "${prefix}"`);
+        logger.info(`Fetching objects for prefix: "${prefix}"`);
         setObjectsLoading(true);
         setObjectsError(null);
         try {
             const response = await getObjectsForPrefix(workerUrl, selectedBucket, prefix);
             setObjects(response.objects);
             setFolders(response.delimitedPrefixes);
-            logger.info(`${response.objects.length} objets et ${response.delimitedPrefixes.length} dossiers récupérés.`);
+            logger.info(`${response.objects.length} objects and ${response.delimitedPrefixes.length} folders fetched.`);
         } catch (e: any) {
-            logger.error(`Impossible de récupérer les objets pour le préfixe "${prefix}"`, e);
-            setObjectsError(`Impossible de récupérer la liste des fichiers.`);
+            logger.error(`Could not fetch objects for prefix "${prefix}"`, e);
+            setObjectsError(`Could not fetch the file list.`);
         } finally {
             setObjectsLoading(false);
         }
@@ -373,19 +373,19 @@ export const App = () => {
       setViewMode('browse');
       setIsSelectionMode(false);
       setSelectedItems(new Set());
-      logger.debug('Fichier et état de compression nettoyés.');
+      logger.debug('File and compression state cleared.');
   }, [previewUrl]);
 
   // Navigation handlers
   const handleSelectBucket = useCallback((bucketName: string) => {
-    logger.info(`Bucket sélectionné: ${bucketName}`);
+    logger.info(`Bucket selected: ${bucketName}`);
     setSelectedBucket(bucketName);
     setSelectedProject(null);
     setError(null);
   }, []);
 
   const handleSelectProject = useCallback((projectPath: string) => {
-    logger.info(`dossier sélectionné: ${projectPath}`);
+    logger.info(`Folder selected: ${projectPath}`);
     setSelectedProject(projectPath);
     setIsSelectionMode(false);
     setSelectedItems(new Set());
@@ -393,7 +393,7 @@ export const App = () => {
   }, []);
   
   const handleUploadToRoot = useCallback(() => {
-    logger.info(`Préparation au téléversement à la racine du bucket: ${selectedBucket}`);
+    logger.info(`Preparing for upload to bucket root: ${selectedBucket}`);
     setIsUploadingToRoot(true);
     setIsSelectionMode(false);
     setSelectedItems(new Set());
@@ -425,20 +425,20 @@ export const App = () => {
 
     const sanitizedName = newProjectName.trim().replace(/\//g, '');
     if (!sanitizedName) {
-      setError("Le nom du dossier ne peut pas être vide.");
+      setError("The folder name cannot be empty.");
       return;
     }
     
     // For now, we only support creating folders at the root.
     const newProjectPath = `${sanitizedName}/`;
     
-    logger.info(`Préparation à la création du dossier "${newProjectPath}" dans le bucket "${selectedBucket}"`);
+    logger.info(`Preparing to create folder "${newProjectPath}" in bucket "${selectedBucket}"`);
     
     // R2 folders are just prefixes. They are created when the first file is uploaded.
     // We just move to the file upload screen with the correct path selected.
     setSelectedProject(newProjectPath);
     setError(null);
-    logger.info(`Sélection du nouveau chemin de dossier: ${newProjectPath}. Le dossier sera créé lors du premier téléversement.`);
+    logger.info(`Selected new folder path: ${newProjectPath}. The folder will be created on the first upload.`);
   }, [selectedBucket]);
 
   const handleDeleteProject = useCallback(async (projectName: string) => {
@@ -446,15 +446,15 @@ export const App = () => {
     // The current DB logic only removes a single entry.
     // For now, this function is disabled in the UI.
     if (!selectedBucket) return;
-    logger.info(`Tentative de suppression du dossier "${projectName}" (action désactivée dans l'interface)`);
+    logger.info(`Attempting to delete folder "${projectName}" (action disabled in UI)`);
     try {
       // The old DB logic is not sufficient for recursive deletes.
       await deleteProjectFromBucket(projectName, selectedBucket); // This might be stale
-      logger.info(`dossier "${projectName}" supprimé de la DB locale.`);
+      logger.info(`folder "${projectName}" deleted from local DB.`);
       await fetchProjects(); // Refresh tree from R2
     } catch (e: any) {
-        logger.error(`Erreur lors de la suppression du dossier "${projectName}"`, e);
-        setError("Erreur lors de la suppression du dossier.");
+        logger.error(`Error deleting folder "${projectName}"`, e);
+        setError("Error deleting folder.");
     }
   }, [selectedBucket, fetchProjects]);
   
@@ -467,20 +467,20 @@ export const App = () => {
       const type = f.type.split('/')[0];
       const isValid = type === 'image' || type === 'video';
       if (!isValid) {
-        logger.error('Type de fichier non supporté ignoré.', { name: f.name, type: f.type });
+        logger.error('Unsupported file type ignored.', { name: f.name, type: f.type });
       }
       return isValid;
     });
 
     if (validFiles.length === 0 && selectedFiles.length > 0) {
-      setError('Aucun fichier supporté sélectionné. Veuillez choisir des images ou des vidéos.');
+      setError('No supported files selected. Please choose images or videos.');
       return;
     }
 
     if (validFiles.length === 1) {
       // Single file mode
       const selectedFile = validFiles[0];
-      logger.info('Fichier unique sélectionné', { name: selectedFile.name, type: selectedFile.type, size: selectedFile.size });
+      logger.info('Single file selected', { name: selectedFile.name, type: selectedFile.type, size: selectedFile.size });
       setFile(selectedFile);
       const type = selectedFile.type.split('/')[0] as FileType;
       setFileType(type);
@@ -489,7 +489,7 @@ export const App = () => {
       else if (type === 'video') setOutputFormat('video/mp4');
     } else if (validFiles.length > 1) {
       // Batch processing mode
-      logger.info(`${validFiles.length} fichiers sélectionnés pour le traitement par lots.`);
+      logger.info(`${validFiles.length} files selected for batch processing.`);
       const batch = validFiles.map(f => ({
         file: f,
         id: (f.webkitRelativePath || f.name) + f.lastModified,
@@ -513,7 +513,7 @@ export const App = () => {
     setR2UploadStatus('idle');
     setR2ObjectKey(null);
     setLastUploadedKeys([]);
-    logger.debug('Déclenchement de la compression d\'image (debounced)');
+    logger.debug('Triggering image compression (debounced)');
 
     debounceTimeoutRef.current = window.setTimeout(() => {
         const image = new Image();
@@ -524,7 +524,7 @@ export const App = () => {
             canvas.height = image.naturalHeight;
             const ctx = canvas.getContext('2d');
             if (!ctx) {
-                setError("Impossible d'obtenir le contexte du canvas.");
+                setError("Could not get canvas context.");
                 setIsLoading(false);
                 return;
             }
@@ -532,7 +532,7 @@ export const App = () => {
 
             canvas.toBlob((blob) => {
                 if (!blob) {
-                    setError("La compression a échoué.");
+                    setError("Compression failed.");
                     setIsLoading(false);
                     return;
                 }
@@ -559,10 +559,10 @@ export const App = () => {
                 const result = { url: newUrl, size: blob.size, name: newName, type: blob.type };
                 setCompressedResult(result);
                 setIsLoading(false);
-                logger.info('Image compressée avec succès', result);
+                logger.info('Image compressed successfully', result);
             }, outputFormat, quality);
         };
-        image.onerror = () => { setError("Impossible de charger l'image."); setIsLoading(false); }
+        image.onerror = () => { setError("Could not load image."); setIsLoading(false); }
     }, 250);
     
     return () => { if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current); };
@@ -572,7 +572,7 @@ export const App = () => {
   const compressVideoPromise = (videoFile: File, options: { format: string, quality: number }): Promise<Blob> => {
     return new Promise((resolve, reject) => {
         if (!MediaRecorder.isTypeSupported(options.format)) {
-            return reject(new Error(`Le format ${options.format} n'est pas supporté par ce navigateur.`));
+            return reject(new Error(`Format ${options.format} is not supported by this browser.`));
         }
 
         const videoUrl = URL.createObjectURL(videoFile);
@@ -592,7 +592,7 @@ export const App = () => {
             const duration = video.duration;
             if (!isFinite(duration) || duration <= 0) {
                 cleanup();
-                return reject(new Error("Impossible de déterminer la durée de la vidéo ou la durée est non valide."));
+                return reject(new Error("Could not determine video duration or duration is invalid."));
             }
 
             // @ts-ignore
@@ -601,12 +601,12 @@ export const App = () => {
             const hasVideo = stream.getVideoTracks().length > 0;
             if (!hasVideo) {
                 cleanup();
-                return reject(new Error("La vidéo source ne contient pas de piste vidéo."));
+                return reject(new Error("The source video does not contain a video track."));
             }
             const hasAudio = stream.getAudioTracks().length > 0;
             
             const videoHeight = video.videoHeight;
-            let baseBitrate; // en bps
+            let baseBitrate; // in bps
             if (videoHeight > 1080) { // > Full HD (ex: 1440p, 4K)
                 baseBitrate = 8 * 1024 * 1024; // 8 Mbps
             } else if (videoHeight > 720) { // 1080p
@@ -618,7 +618,7 @@ export const App = () => {
             }
 
             const targetVideoBitrate = baseBitrate * options.quality;
-            logger.debug(`Compression vidéo : hauteur=${videoHeight}p, bitrate de base=${baseBitrate/1024/1024}Mbps, qualité=${options.quality}, bitrate cible=${targetVideoBitrate/1024/1024}Mbps`);
+            logger.debug(`Video compression: height=${videoHeight}p, base bitrate=${baseBitrate/1024/1024}Mbps, quality=${options.quality}, target bitrate=${targetVideoBitrate/1024/1024}Mbps`);
             
             const targetAudioBitrate = 128 * 1024; // 128kbps
 
@@ -650,7 +650,7 @@ export const App = () => {
             };
             
             safetyTimeout = window.setTimeout(() => {
-                logger.debug("Le timeout de sécurité de la compression vidéo a été atteint, arrêt de l'enregistreur.");
+                logger.debug("Video compression safety timeout reached, stopping recorder.");
                 if (recorder && recorder.state === 'recording') {
                     recorder.stop();
                 }
@@ -661,12 +661,12 @@ export const App = () => {
                 await video.play();
             } catch (e) {
                 cleanup();
-                reject(new Error("La lecture automatique a échoué, impossible de compresser."));
+                reject(new Error("Autoplay failed, cannot compress."));
             }
         };
         
         video.onended = () => {
-            logger.debug("L'événement 'onended' de la vidéo a été déclenché.");
+            logger.debug("Video 'onended' event triggered.");
             if (recorder && recorder.state === 'recording') {
                 recorder.stop();
             }
@@ -674,7 +674,7 @@ export const App = () => {
 
         video.onerror = () => {
             cleanup();
-            reject(new Error("Impossible de charger le fichier vidéo."));
+            reject(new Error("Could not load video file."));
         };
 
         video.preload = 'metadata';
@@ -688,13 +688,13 @@ export const App = () => {
     setCompressedResult(null);
     setError(null);
     setLastUploadedKeys([]);
-    logger.info('Démarrage de la compression vidéo...', { format: outputFormat, quality });
+    logger.info('Starting video compression...', { format: outputFormat, quality });
 
     try {
         const blob = await compressVideoPromise(file, { format: outputFormat, quality });
         
         if (blob.size > file.size) {
-            setError("Attention : Le fichier compressé est plus volumineux que l'original. La source est peut-être déjà très optimisée.");
+            setError("Warning: The compressed file is larger than the original. The source may already be highly optimized.");
         }
         
         if (compressedUrlRef.current) URL.revokeObjectURL(compressedUrlRef.current);
@@ -717,11 +717,11 @@ export const App = () => {
         
         const result = { url: newUrl, size: blob.size, name: newName, type: blob.type };
         setCompressedResult(result);
-        logger.info('Vidéo compressée avec succès', result);
+        logger.info('Video compressed successfully', result);
 
     } catch(e: any) {
-        logger.error('Erreur lors de la compression vidéo', { error: e.message, stack: e.stack });
-        setError(`Erreur de compression : ${e.message}`);
+        logger.error('Error during video compression', { error: e.message, stack: e.stack });
+        setError(`Compression error: ${e.message}`);
     } finally {
         setIsLoading(false);
     }
@@ -730,7 +730,7 @@ export const App = () => {
   const handleSaveToR2 = async () => {
       if (!compressedResult || !selectedBucket || !workerUrl) return;
       
-      logger.info('Tentative d\'enregistrement sur R2 via worker', { bucket: selectedBucket, project: selectedProject, file: compressedResult.name });
+      logger.info('Attempting to save to R2 via worker', { bucket: selectedBucket, project: selectedProject, file: compressedResult.name });
       setR2UploadStatus('uploading');
       setR2ObjectKey(null);
       setError(null);
@@ -746,11 +746,11 @@ export const App = () => {
           setR2UploadStatus('success');
           setR2ObjectKey(finalObjectKey);
           setLastUploadedKeys([finalObjectKey]);
-          logger.info('Fichier téléversé avec succès sur R2', { key: finalObjectKey });
+          logger.info('File uploaded successfully to R2', { key: finalObjectKey });
       } catch (e: any) {
-          logger.error('Échec du téléversement vers R2', { error: e.message, stack: e.stack });
+          logger.error('Failed to upload to R2', { error: e.message, stack: e.stack });
           console.error("Failed to upload to R2:", e);
-          setError(`Échec du téléversement vers R2 : ${e.message}`);
+          setError(`Failed to upload to R2: ${e.message}`);
           setR2UploadStatus('error');
       }
   };
@@ -765,18 +765,18 @@ export const App = () => {
                 canvas.width = image.naturalWidth;
                 canvas.height = image.naturalHeight;
                 const ctx = canvas.getContext('2d');
-                if (!ctx) return reject(new Error("Impossible d'obtenir le contexte du canvas."));
+                if (!ctx) return reject(new Error("Could not get canvas context."));
                 
                 ctx.drawImage(image, 0, 0);
                 canvas.toBlob((blob) => {
                     URL.revokeObjectURL(imageUrl);
-                    if (!blob) return reject(new Error("La compression a échoué."));
+                    if (!blob) return reject(new Error("Compression failed."));
                     resolve(blob);
                 }, options.format, options.quality);
             };
             image.onerror = () => {
                 URL.revokeObjectURL(imageUrl);
-                reject(new Error("Impossible de charger l'image."));
+                reject(new Error("Could not load image."));
             };
         });
     };
@@ -784,7 +784,7 @@ export const App = () => {
     const handleStartBatchProcessing = async () => {
         if (!workerUrl || !selectedBucket) return;
 
-        logger.info('Démarrage du traitement par lot.', { count: batchFiles.length });
+        logger.info('Starting batch processing.', { count: batchFiles.length });
         setIsBatchProcessing(true);
         setError(null);
         setLastUploadedKeys([]);
@@ -839,29 +839,28 @@ export const App = () => {
                 await uploadFileToR2(workerUrl, selectedBucket, objectKey, blobToUpload, blobToUpload.type);
                 successfulKeys.push(objectKey);
                 setBatchProgress(p => ({ ...p, [id]: { ...p[id], status: 'success' } }));
-                logger.info(`Fichier traité et téléversé avec succès: ${objectKey}`);
+                logger.info(`File processed and uploaded successfully: ${objectKey}`);
 
             } catch (e: any) {
                 hasErrors = true;
-                logger.error(`Erreur lors du traitement du fichier ${file.name}`, { error: e.message });
+                logger.error(`Error while processing file ${file.name}`, { error: e.message });
                 setBatchProgress(p => ({ ...p, [id]: { ...p[id], status: 'error', message: e.message } }));
             }
         }
         setIsBatchProcessing(false);
         setLastUploadedKeys(successfulKeys);
-        logger.info('Traitement par lot terminé.');
+        logger.info('Batch processing finished.');
 
         if (hasErrors) {
-            setError("Certains fichiers n'ont pas pu être traités. Vérifiez les statuts dans la liste ci-dessus.");
+            setError("Some files could not be processed. Check the statuses in the list above.");
         } else if (successfulKeys.length > 0) {
             const fileCount = successfulKeys.length;
-            const plural = fileCount > 1 ? 's' : '';
-            setError(`Succès ! ${fileCount} fichier${plural} traité${plural} et téléversé${plural}.`);
+            setError(`Success! ${fileCount} file${fileCount > 1 ? 's' : ''} processed and uploaded.`);
         }
     };
     
     const handleAddBatchFiles = useCallback((newFiles: File[]) => {
-        logger.info(`Ajout de ${newFiles.length} fichier(s) au lot.`);
+        logger.info(`Adding ${newFiles.length} file(s) to batch.`);
         const existingFileIds = new Set(batchFiles.map(bf => bf.id));
 
         const filesToAdd = newFiles.map(f => ({
@@ -870,7 +869,7 @@ export const App = () => {
         })).filter(bf => !existingFileIds.has(bf.id));
 
         if (filesToAdd.length === 0) {
-            logger.info("Aucun nouveau fichier à ajouter (tous sont des doublons).");
+            logger.info("No new files to add (all are duplicates).");
             return;
         }
 
@@ -891,11 +890,11 @@ export const App = () => {
             delete newProgress[idToRemove];
             return newProgress;
         });
-        logger.debug(`Fichier avec id ${idToRemove} retiré du lot.`);
+        logger.debug(`File with id ${idToRemove} removed from batch.`);
     }, []);
   
   const handleUrlSaved = (url: string) => {
-    logger.info(`URL du worker sauvegardée: ${url}`);
+    logger.info(`Worker URL saved: ${url}`);
     localStorage.setItem('ouranos-worker-url', url);
     setWorkerUrl(url);
     // Reset state to force re-fetch
@@ -906,7 +905,7 @@ export const App = () => {
   };
   
   const handleForgetUrl = () => {
-    logger.info('URL du worker oubliée.');
+    logger.info('Worker URL forgotten.');
     localStorage.removeItem('ouranos-worker-url');
     setWorkerUrl(null);
     // Reset all state
@@ -923,7 +922,7 @@ export const App = () => {
       const newDomains = { ...r2PublicDomains, [bucketName]: domain };
       setR2PublicDomains(newDomains);
       localStorage.setItem('ouranos-r2-public-domains', JSON.stringify(newDomains));
-      logger.info(`Domaine public pour ${bucketName} sauvegardé.`);
+      logger.info(`Public domain for ${bucketName} saved.`);
   };
   
     // --- Selection Mode Handlers ---
@@ -976,7 +975,7 @@ export const App = () => {
         if (!workerUrl || !selectedBucket || selectedItems.size === 0) return;
 
         const { keys, prefixes } = partitionSelectedItems();
-        logger.info(`Demande de suppression pour ${keys.length} fichiers et ${prefixes.length} dossiers.`);
+        logger.info(`Deletion request for ${keys.length} files and ${prefixes.length} folders.`);
         
         setShowDeleteConfirm(false);
         setIsLoading(true);
@@ -985,11 +984,11 @@ export const App = () => {
         try {
             await deleteObjects(workerUrl, selectedBucket, { keys, prefixes });
             const count = selectedItems.size;
-            setError(`Succès : ${count} élément(s) supprimé(s).`);
-            logger.info(`${count} élément(s) supprimé(s) avec succès.`);
+            setError(`Success: ${count} item${count !== 1 ? 's' : ''} deleted.`);
+            logger.info(`${count} item(s) successfully deleted.`);
         } catch (e: any) {
-            logger.error('Erreur lors de la suppression des éléments', e);
-            setError(`Erreur lors de la suppression : ${e.message}`);
+            logger.error('Error deleting items', e);
+            setError(`Error during deletion: ${e.message}`);
         } finally {
             setIsLoading(false);
             setSelectedItems(new Set());
@@ -1002,7 +1001,7 @@ export const App = () => {
         if (!workerUrl || !selectedBucket || selectedItems.size === 0) return;
         const publicDomain = r2PublicDomains[selectedBucket];
         if (!publicDomain) {
-            setError("Veuillez d'abord configurer le domaine public pour ce bucket.");
+            setError("Please configure the public domain for this bucket first.");
             return;
         }
 
@@ -1019,7 +1018,7 @@ export const App = () => {
             }
             
             if (allKeysToCopy.length === 0) {
-                setError("Aucun fichier à copier (les dossiers sélectionnés sont peut-être vides).");
+                setError("No files to copy (selected folders might be empty).");
                 return;
             }
 
@@ -1029,10 +1028,10 @@ export const App = () => {
             setCopyUrlSuccess(true);
             setTimeout(() => setCopyUrlSuccess(false), 2500);
             
-            logger.info(`${allKeysToCopy.length} URLs copiées dans le presse-papiers.`);
+            logger.info(`${allKeysToCopy.length} URLs copied to clipboard.`);
         } catch (e: any) {
-            logger.error("Erreur lors de la copie des URLs", e);
-            setError(`Erreur lors de la copie des URLs : ${e.message}`);
+            logger.error("Error copying URLs", e);
+            setError(`Error copying URLs: ${e.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -1055,18 +1054,18 @@ export const App = () => {
     return html`
         <div class="upload-success-container">
             <div class="alert alert-success">
-                <strong>${lastUploadedKeys.length} fichier(s) téléversé(s) avec succès !</strong>
+                <strong>${lastUploadedKeys.length} file(s) uploaded successfully!</strong>
             </div>
             ${publicDomain ? html`
                 <button class="btn btn-secondary" onClick=${handleCopy} style="margin-top: 1rem;">
-                    ${copySuccess ? '✓ Copié !' : `Copier ${lastUploadedKeys.length} URL(s)`}
+                    ${copySuccess ? '✓ Copied!' : `Copy ${lastUploadedKeys.length} URL(s)`}
                 </button>
             ` : html`
                 <div class="alert alert-info" style="text-align: left; font-size: 0.9rem; margin-top: 1rem;">
-                    <strong>Pour copier les URLs publiques</strong>, vous devez d'abord configurer le domaine public pour le bucket <strong>${selectedBucket}</strong>.
+                    <strong>To copy public URLs</strong>, you must first set up the public domain for the bucket <strong>${selectedBucket}</strong>.
                     <br/><br/>
                     <button class="btn btn-secondary" style="width: auto; padding: 0.5rem 1rem;" onClick=${goBackToBucketSelection}>
-                        Configurer le domaine
+                        Configure Domain
                     </button>
                 </div>
             `}
@@ -1151,10 +1150,10 @@ export const App = () => {
       const isDownloadDisabled = isLoading || !compressedResult;
       const isR2ButtonDisabled = isDownloadDisabled || r2UploadStatus === 'uploading' || r2UploadStatus === 'success';
       
-      let r2ButtonText: VNode | string = 'Enregistrer sur R2';
-      if (r2UploadStatus === 'uploading') r2ButtonText = html`<div class="loader"></div> Envoi...`;
-      if (r2UploadStatus === 'success') r2ButtonText = '✓ Succès';
-      if (r2UploadStatus === 'error') r2ButtonText = 'Réessayer';
+      let r2ButtonText: VNode | string = 'Save to R2';
+      if (r2UploadStatus === 'uploading') r2ButtonText = html`<div class="loader"></div> Uploading...`;
+      if (r2UploadStatus === 'success') r2ButtonText = '✓ Success';
+      if (r2UploadStatus === 'error') r2ButtonText = 'Retry';
 
       return html`
         <${ImageComparator}
@@ -1172,7 +1171,7 @@ export const App = () => {
             setQuality=${setQuality}
         />
         <div class="actions">
-            <button class="btn btn-secondary" onClick=${() => { setFile(null); setPreviewUrl(null); setCompressedResult(null); setError(null); }}>Changer de fichier</button>
+            <button class="btn btn-secondary" onClick=${() => { setFile(null); setPreviewUrl(null); setCompressedResult(null); setError(null); }}>Change file</button>
             <a 
                 href=${isDownloadDisabled ? '#' : compressedResult.url} 
                 download=${isDownloadDisabled ? '' : compressedResult.name} 
@@ -1180,7 +1179,7 @@ export const App = () => {
                 onClick=${(e: Event) => isDownloadDisabled && e.preventDefault()}
                 aria-disabled=${isDownloadDisabled}
             >
-                ${isLoading && !compressedResult ? html`<div class="loader"></div> Préparation...` : 'Télécharger'}
+                ${isLoading && !compressedResult ? html`<div class="loader"></div> Preparing...` : 'Download'}
             </a>
             <button 
               class="btn ${r2UploadStatus === 'success' ? 'btn-success' : 'btn-secondary'}" 
@@ -1198,20 +1197,20 @@ export const App = () => {
       const isDownloadDisabled = isLoading || !compressedResult;
       const isR2ButtonDisabled = isDownloadDisabled || r2UploadStatus === 'uploading' || r2UploadStatus === 'success';
       
-      let r2ButtonText: VNode | string = 'Enregistrer sur R2';
-      if (r2UploadStatus === 'uploading') r2ButtonText = html`<div class="loader"></div> Envoi...`;
-      if (r2UploadStatus === 'success') r2ButtonText = '✓ Succès';
-      if (r2UploadStatus === 'error') r2ButtonText = 'Réessayer';
+      let r2ButtonText: VNode | string = 'Save to R2';
+      if (r2UploadStatus === 'uploading') r2ButtonText = html`<div class="loader"></div> Uploading...`;
+      if (r2UploadStatus === 'success') r2ButtonText = '✓ Success';
+      if (r2UploadStatus === 'error') r2ButtonText = 'Retry';
 
       return html`
         <div class="comparator-wrapper">
             <div class="file-details">
-                <p><strong>Fichier :</strong> ${file.name}</p>
+                <p><strong>File:</strong> ${file.name}</p>
                 <div class="comparator-stats">
-                    <span><strong>Original :</strong> ${formatBytes(file.size)}</span>
+                    <span><strong>Original:</strong> ${formatBytes(file.size)}</span>
                     ${compressedResult && html`
-                        <span><strong>Compressé :</strong> ${formatBytes(compressedResult.size)}</span>
-                        <span class="size-reduction"><strong>Réduction :</strong> ${Math.round(100 - (compressedResult.size / file.size) * 100)}%</span>
+                        <span><strong>Compressed:</strong> ${formatBytes(compressedResult.size)}</span>
+                        <span class="size-reduction"><strong>Reduction:</strong> ${Math.round(100 - (compressedResult.size / file.size) * 100)}%</span>
                     `}
                 </div>
             </div>
@@ -1221,7 +1220,7 @@ export const App = () => {
                  ${isLoading && html`
                     <div class="comparator-loading-overlay">
                         <div class="loader"></div>
-                        <p>Compression en cours... <br/>(cela peut prendre un certain temps)</p>
+                        <p>Compressing... <br/>(this may take a while)</p>
                     </div>
                 `}
             </div>
@@ -1235,14 +1234,14 @@ export const App = () => {
             disabled=${isLoading}
         />
         <div class="actions">
-            <button class="btn btn-secondary" onClick=${() => { setFile(null); setPreviewUrl(null); setCompressedResult(null); setError(null); }}>Changer de fichier</button>
+            <button class="btn btn-secondary" onClick=${() => { setFile(null); setPreviewUrl(null); setCompressedResult(null); setError(null); }}>Change file</button>
             ${!compressedResult ? html`
                 <button class="btn btn-primary" onClick=${handleVideoCompress} disabled=${isLoading}>
-                    ${isLoading ? html`<div class="loader"></div> Compression...` : 'Compresser'}
+                    ${isLoading ? html`<div class="loader"></div> Compressing...` : 'Compress'}
                 </button>
             ` : html`
                 <button class="btn btn-secondary" onClick=${handleVideoCompress} disabled=${isLoading}>
-                    ${isLoading ? html`<div class="loader"></div> Re-compresser...` : 'Re-compresser'}
+                    ${isLoading ? html`<div class="loader"></div> Re-compressing...` : 'Re-compress'}
                 </button>
                 <a 
                     href=${isDownloadDisabled ? '#' : compressedResult.url} 
@@ -1251,7 +1250,7 @@ export const App = () => {
                     onClick=${(e: Event) => isDownloadDisabled && e.preventDefault()}
                     aria-disabled=${isDownloadDisabled}
                 >
-                    Télécharger
+                    Download
                 </a>
                 <button 
                   class="btn ${r2UploadStatus === 'success' ? 'btn-success' : 'btn-secondary'}" 
@@ -1290,7 +1289,7 @@ export const App = () => {
     };
     
     if (selectedBucket) {
-        backButton = html`<button class="header-back-btn" onClick=${goBack} title="Retour"><${ArrowLeftIcon} /> Retour</button>`;
+        backButton = html`<button class="header-back-btn" onClick=${goBack} title="Back"><${ArrowLeftIcon} /> Back</button>`;
         title = selectedProject ? `${selectedBucket}/${selectedProject}` : `${selectedBucket}`;
     }
 
@@ -1303,29 +1302,29 @@ export const App = () => {
             <span>${title}</span>
           </h1>
           <div class="header-actions">
-               <button class="header-btn" onClick=${handleRefresh} aria-label="Rafraîchir" title="Rafraîchir" disabled=${!!(selectedProject && viewMode === 'upload') || (isUploadingToRoot && viewMode === 'upload')}>
+               <button class="header-btn" onClick=${handleRefresh} aria-label="Refresh" title="Refresh" disabled=${!!(selectedProject && viewMode === 'upload') || (isUploadingToRoot && viewMode === 'upload')}>
                   <${RefreshIcon} />
                </button>
-               <button class="header-btn" onClick=${() => setIsLogViewerOpen(true)} aria-label="Afficher les logs">
+               <button class="header-btn" onClick=${() => setIsLogViewerOpen(true)} aria-label="Show Logs">
                   <${TerminalIcon} />
               </button>
-              <button class="header-btn" onClick=${handleToggleTheme} aria-label="Changer le thème">
+              <button class="header-btn" onClick=${handleToggleTheme} aria-label="Change Theme">
                   ${theme === 'light' ? html`<${MoonIcon} />` : html`<${SunIcon} />`}
               </button>
               ${workerUrl && html`
                 <div class="settings-menu-container" ref=${settingsRef}>
-                    <button class="header-btn" onClick=${() => setIsSettingsOpen(prev => !prev)} aria-label="Paramètres">
+                    <button class="header-btn" onClick=${() => setIsSettingsOpen(prev => !prev)} aria-label="Settings">
                         <${CogIcon} />
                     </button>
                     ${isSettingsOpen && html`
                         <div class="settings-dropdown">
                             <button onClick=${() => { setIsManagingBuckets(true); setIsSettingsOpen(false); }}>
                                 <${BucketIcon} />
-                                <span>Gérer les buckets</span>
+                                <span>Manage Buckets</span>
                             </button>
                             <button onClick=${() => { handleForgetUrl(); setIsSettingsOpen(false); }}>
                                 <${LogOutIcon} />
-                                <span>Changer de Worker</span>
+                                <span>Change Worker</span>
                             </button>
                         </div>
                     `}
@@ -1356,10 +1355,10 @@ export const App = () => {
     <div class="container">
       ${renderHeader()}
       ${error && html`<div class="alert ${
-          error.toLowerCase().includes("succès") ? 'alert-success' :
-          (error.toLowerCase().includes("erreur") || error.toLowerCase().includes("échec") || error.toLowerCase().includes("problème") || error.toLowerCase().includes("certains")) ? 'alert-danger' :
+          error.toLowerCase().includes("success") ? 'alert-success' :
+          (error.toLowerCase().includes("error") || error.toLowerCase().includes("fail") || error.toLowerCase().includes("problem") || error.toLowerCase().includes("some")) ? 'alert-danger' :
           'alert-info'
-      }" role="alert" onClick=${() => setError(null)} title="Cliquez pour fermer">${error}</div>`}
+      }" role="alert" onClick=${() => setError(null)} title="Click to close">${error}</div>`}
       <main>
         ${renderContent()}
       </main>
@@ -1388,10 +1387,10 @@ export const App = () => {
         isOpen=${showDeleteConfirm}
         onClose=${() => setShowDeleteConfirm(false)}
         onConfirm=${handleConfirmDelete}
-        title="Confirmer la suppression"
+        title="Confirm Deletion"
     >
-        <p>Êtes-vous sûr de vouloir supprimer définitivement <strong>${selectedItems.size}</strong> élément(s) ?</p>
-        <p>Cette action est irréversible.</p>
+        <p>Are you sure you want to permanently delete <strong>${selectedItems.size}</strong> item(s)?</p>
+        <p>This action is irreversible.</p>
     </${ConfirmationModal}>
   `;
 };

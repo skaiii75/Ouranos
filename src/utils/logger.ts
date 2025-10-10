@@ -15,7 +15,7 @@ class Logger {
 
   private addLog(level: LogLevel, message: string, data?: any) {
     const newLog: LogEntry = {
-      timestamp: new Date().toLocaleTimeString('fr-FR', { hour12: false }),
+      timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
       level,
       message,
       data,

@@ -12,9 +12,9 @@ export const FilePreview = ({ file, fileType, previewUrl }: FilePreviewProps) =>
 
     return html`
         <div class="file-details">
-          <p><strong>Fichier :</strong> ${file.name} (${formatBytes(file.size)})</p>
+          <p><strong>File:</strong> ${file.name} (${formatBytes(file.size)})</p>
           <div class="preview">
-            ${fileType === 'image' ? html`<img src=${previewUrl} alt="Aperçu du fichier" />` : html`<video src=${previewUrl} controls />`}
+            ${fileType === 'image' ? html`<img src=${previewUrl} alt="File preview" />` : html`<video src=${previewUrl} controls />`}
           </div>
         </div>
     `;

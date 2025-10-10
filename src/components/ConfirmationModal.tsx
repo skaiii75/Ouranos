@@ -21,14 +21,14 @@ export const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, children 
             <div class="modal-content" onClick=${(e: Event) => e.stopPropagation()}>
                 <div class="modal-header">
                     <h2>${title}</h2>
-                    <button class="header-btn" onClick=${onClose} aria-label="Fermer"><${CloseIcon} /></button>
+                    <button class="header-btn" onClick=${onClose} aria-label="Close"><${CloseIcon} /></button>
                 </div>
                 <div class="modal-body">
                     ${children}
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onClick=${onClose}>Annuler</button>
-                    <button type="button" class="btn btn-primary" style="background: var(--c-error);" onClick=${onConfirm}>Confirmer</button>
+                    <button type="button" class="btn btn-secondary" onClick=${onClose}>Cancel</button>
+                    <button type="button" class="btn btn-primary" style="background: var(--c-error);" onClick=${onConfirm}>Confirm</button>
                 </div>
             </div>
         </div>

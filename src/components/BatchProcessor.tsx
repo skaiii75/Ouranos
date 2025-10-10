@@ -35,18 +35,18 @@ const FileStatus = ({ statusInfo }: { statusInfo: BatchFileStatus }) => {
     const { status, message } = statusInfo;
     
     if (status === 'pending') {
-        return html`<div class="file-status file-status-pending">En attente</div>`;
+        return html`<div class="file-status file-status-pending">Pending</div>`;
     }
     if (status === 'compressing' || status === 'uploading') {
-        return html`<div class="file-status file-status-processing"><div class="loader"></div> ${status === 'compressing' ? 'Compression' : 'Envoi...'}</div>`;
+        return html`<div class="file-status file-status-processing"><div class="loader"></div> ${status === 'compressing' ? 'Compressing' : 'Uploading...'}</div>`;
     }
     if (status === 'success') {
-        return html`<div class="file-status file-status-success">✓ Succès</div>`;
+        return html`<div class="file-status file-status-success">✓ Success</div>`;
     }
     if (status === 'error') {
         return html`
             <div class="file-status file-status-error file-item-error-tooltip">
-                ✗ Erreur
+                ✗ Error
                 ${message && html`<span class="tooltip-text">${message}</span>`}
             </div>
         `;
@@ -90,24 +90,24 @@ export const BatchProcessor = ({
     return html`
         <div class="batch-processor-container">
             <div class="batch-summary">
-                <h2>Traitement par lot</h2>
+                <h2>Batch Processing</h2>
                 <p class="light-text">
-                    ${imageFiles.length} image(s) et ${videoFiles.length} vidéo(s) à traiter.
-                    Taille totale : ${formatBytes(totalOriginalSize)}.
-                    ${totalCompressedSize > 0 && ` Taille compressée : ${formatBytes(totalCompressedSize)}.`}
+                    ${imageFiles.length} image(s) and ${videoFiles.length} video(s) to process.
+                    Total size: ${formatBytes(totalOriginalSize)}.
+                    ${totalCompressedSize > 0 && ` Compressed size: ${formatBytes(totalCompressedSize)}.`}
                 </p>
             </div>
             
             <div class="batch-add-files">
                 <button class="btn btn-secondary" onClick=${() => fileInputRef.current?.click()} disabled=${isProcessing}>
                     <${FilesIcon} />
-                    <span>Ajouter des fichiers</span>
+                    <span>Add Files</span>
                 </button>
                 <input ref=${fileInputRef} type="file" onChange=${handleFileChange} accept="image/*,video/*" multiple style="display:none" />
                 
                 <button class="btn btn-secondary" onClick=${() => folderInputRef.current?.click()} disabled=${isProcessing}>
                     <${FolderIcon} />
-                    <span>Ajouter un dossier</span>
+                    <span>Add Folder</span>
                 </button>
                 <input ref=${folderInputRef} type="file" onChange=${handleFileChange} webkitdirectory directory multiple style="display:none" />
             </div>
@@ -115,7 +115,7 @@ export const BatchProcessor = ({
             <div class="batch-options">
                 ${imageFiles.length > 0 && html`
                     <div class="image-options">
-                        <h3>Options pour les images</h3>
+                        <h3>Options for Images</h3>
                         <${CompressionOptions}
                             fileType="image"
                             outputFormat=${imageOptions.format}
@@ -128,7 +128,7 @@ export const BatchProcessor = ({
                 `}
                 ${videoFiles.length > 0 && html`
                      <div class="video-options" style=${imageFiles.length > 0 ? 'margin-top: 1.5rem' : ''}>
-                        <h3>Options pour les vidéos</h3>
+                        <h3>Options for Videos</h3>
                         <${CompressionOptions}
                             fileType="video"
                             outputFormat=${videoOptions.format}
@@ -168,7 +168,7 @@ export const BatchProcessor = ({
                             </div>
                             <button 
                                 class="btn-delete" 
-                                title="Retirer le fichier" 
+                                title="Remove file" 
                                 onClick=${(e: Event) => { e.stopPropagation(); onRemoveFile(id); }}
                                 disabled=${isProcessing}
                             >
@@ -181,10 +181,10 @@ export const BatchProcessor = ({
 
             <div class="actions">
                 <button class="btn btn-secondary" onClick=${onClear} disabled=${isProcessing}>
-                    Annuler
+                    Cancel
                 </button>
                 <button class="btn btn-primary" onClick=${onStartProcess} disabled=${isProcessing || files.length === 0}>
-                     ${isProcessing ? html`<div class="loader"></div> Traitement...` : 'Lancer le traitement'}
+                     ${isProcessing ? html`<div class="loader"></div> Processing...` : 'Start Processing'}
                 </button>
             </div>
         </div>

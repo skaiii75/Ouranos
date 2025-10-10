@@ -80,7 +80,7 @@ export const BucketManager = ({ workerUrl, activeBuckets, onClose }: BucketManag
             const buckets = await listR2Buckets(workerUrl, accountId, apiToken);
             setAvailableBuckets(buckets);
             localStorage.setItem('ouranos-cf-account-id', accountId);
-            logger.info('ID de compte Cloudflare sauvegardé localement.');
+            logger.info('Cloudflare account ID saved locally.');
             
             const newSelected = new Set<string>();
             buckets.forEach(bucket => {
@@ -119,37 +119,37 @@ export const BucketManager = ({ workerUrl, activeBuckets, onClose }: BucketManag
         <div class="modal-overlay" onClick=${onClose}>
             <div class="modal-content" onClick=${(e: Event) => e.stopPropagation()}>
                 <div class="modal-header">
-                    <h2>Gérer les Buckets</h2>
-                    <button class="header-btn" onClick=${onClose} aria-label="Fermer"><${CloseIcon} /></button>
+                    <h2>Manage Buckets</h2>
+                    <button class="header-btn" onClick=${onClose} aria-label="Close"><${CloseIcon} /></button>
                 </div>
                 <div class="modal-body">
                     <p class="alert alert-info" style="text-align: left; font-size: 0.9rem;">
-                        Pour synchroniser vos buckets R2, fournissez votre ID de compte Cloudflare et un jeton d'API avec la permission <code>R2:Read</code>.
-                        Le jeton n'est utilisé que pour cette session et n'est jamais sauvegardé.
+                        To sync your R2 buckets, provide your Cloudflare Account ID and an API token with the <code>R2:Read</code> permission.
+                        The token is only used for this session and is never saved.
                     </p>
                     <div class="form-group">
-                        <label for="accountId">ID de Compte Cloudflare</label>
+                        <label for="accountId">Cloudflare Account ID</label>
                         <div class="form-group-icon">
                             <${AccountIcon} />
-                            <input type="text" id="accountId" value=${accountId} onInput=${(e: any) => setAccountId(e.target.value)} placeholder="Votre ID de compte ici..." />
+                            <input type="text" id="accountId" value=${accountId} onInput=${(e: any) => setAccountId(e.target.value)} placeholder="Your account ID here..." />
                         </div>
                     </div>
                      <div class="form-group">
-                        <label for="apiToken">Jeton d'API Cloudflare</label>
+                        <label for="apiToken">Cloudflare API Token</label>
                         <div class="form-group-icon">
                             <${KeyIcon} />
-                            <input type="password" id="apiToken" value=${apiToken} onInput=${(e: any) => setApiToken(e.target.value)} placeholder="coller le jeton (R2:Read)..." />
+                            <input type="password" id="apiToken" value=${apiToken} onInput=${(e: any) => setApiToken(e.target.value)} placeholder="paste token (R2:Read)..." />
                         </div>
                     </div>
                      <button class="btn btn-primary" onClick=${handleFetchBuckets} disabled=${isLoading || !accountId || !apiToken}>
-                        ${isLoading ? html`<div class="loader"></div> Recherche...` : 'Lister les buckets du compte'}
+                        ${isLoading ? html`<div class="loader"></div> Fetching...` : 'List Account Buckets'}
                      </button>
                     ${error && html`<div class="alert alert-danger" style="margin-top: 1rem;">${error}</div>`}
                     
                     ${availableBuckets.length > 0 && html`
                         <div style="margin-top: 1.5rem;">
-                            <h3>Buckets trouvés sur votre compte</h3>
-                            <p class="light-text" style="font-size: 0.9rem;">Cochez les buckets que vous voulez lier à votre worker.</p>
+                            <h3>Buckets found on your account</h3>
+                            <p class="light-text" style="font-size: 0.9rem;">Check the buckets you want to bind to your worker.</p>
                             <div class="bucket-manager-list">
                                 ${availableBuckets.map(bucket => {
                                     const bindingName = generateBindingName(bucket.name);
@@ -166,19 +166,19 @@ export const BucketManager = ({ workerUrl, activeBuckets, onClose }: BucketManag
                     
                     ${generatedConfig && html`
                         <div style="margin-top: 1rem;">
-                            <h3>Configuration à ajouter</h3>
-                            <p class="light-text" style="font-size: 0.9rem;">Copiez ce contenu dans votre fichier <code>wrangler.jsonc</code>, puis redéployez votre worker avec <code>npx wrangler deploy</code>.</p>
+                            <h3>Configuration to Add</h3>
+                            <p class="light-text" style="font-size: 0.9rem;">Copy this content into your <code>wrangler.jsonc</code> file, then redeploy your worker with <code>npx wrangler deploy</code>.</p>
                             <div class="config-output">
                                 <pre>${generatedConfig}</pre>
                                 <button class="copy-btn" onClick=${handleCopyToClipboard}>
-                                    ${copySuccess ? 'Copié!' : html`<${CopyIcon} /> Copier`}
+                                    ${copySuccess ? 'Copied!' : html`<${CopyIcon} /> Copy`}
                                 </button>
                             </div>
                         </div>
                     `}
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-secondary" onClick=${onClose}>Fermer</button>
+                    <button class="btn btn-secondary" onClick=${onClose}>Close</button>
                 </div>
             </div>
         </div>

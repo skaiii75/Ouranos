@@ -23,14 +23,14 @@ export const BucketSettingsModal = ({ bucketName, initialDomain, onSave, onClose
         <div class="modal-overlay" onClick=${onClose}>
             <div class="modal-content" onClick=${(e: Event) => e.stopPropagation()}>
                 <div class="modal-header">
-                    <h2>Paramètres du Bucket</h2>
-                    <button class="header-btn" onClick=${onClose} aria-label="Fermer"><${CloseIcon} /></button>
+                    <h2>Bucket Settings</h2>
+                    <button class="header-btn" onClick=${onClose} aria-label="Close"><${CloseIcon} /></button>
                 </div>
                 <form onSubmit=${handleSave}>
                     <div class="modal-body">
-                        <p>Configurez le domaine public pour le bucket <strong>${bucketName}</strong>.</p>
+                        <p>Configure the public domain for the <strong>${bucketName}</strong> bucket.</p>
                         <div class="form-group">
-                            <label for="public-domain">Domaine Public R2</label>
+                            <label for="public-domain">R2 Public Domain</label>
                             <input
                                 type="text"
                                 id="public-domain"
@@ -39,13 +39,13 @@ export const BucketSettingsModal = ({ bucketName, initialDomain, onSave, onClose
                                 onInput=${(e: Event) => setDomain((e.target as HTMLInputElement).value)}
                             />
                             <small class="light-text" style="margin-top: 0.5rem; display: block; line-height: 1.4;">
-                                Vous trouverez ceci dans les paramètres de votre bucket R2. Cette valeur est sauvegardée localement dans votre navigateur.
+                                You can find this in your R2 bucket settings. This value is saved locally in your browser.
                             </small>
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" onClick=${onClose}>Annuler</button>
-                        <button type="submit" class="btn btn-primary">Sauvegarder</button>
+                        <button type="button" class="btn btn-secondary" onClick=${onClose}>Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
                     </div>
                 </form>
             </div>

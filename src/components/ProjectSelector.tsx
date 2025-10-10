@@ -49,7 +49,7 @@ const ProjectNodeItem = ({ node, onSelectProject, expandedFolders, toggleFolder 
                 <button 
                     class="project-tree-chevron" 
                     onClick=${(e: Event) => { e.stopPropagation(); toggleFolder(node.path); }}
-                    aria-label=${isExpanded ? 'Réduire' : 'Déplier'}
+                    aria-label=${isExpanded ? 'Collapse' : 'Expand'}
                     style=${{ visibility: hasChildren ? 'visible' : 'hidden', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
                 >
                     <${ChevronRightIcon} />
@@ -105,7 +105,7 @@ export const ProjectSelector = ({ projects, onSelectProject, onCreateProject, on
       return html`
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; color: var(--c-text-light);">
             <div class="loader"></div>
-            <p style="margin-top: 1rem;">Synchronisation avec R2...</p>
+            <p style="margin-top: 1rem;">Syncing with R2...</p>
         </div>
       `;
     }
@@ -113,7 +113,7 @@ export const ProjectSelector = ({ projects, onSelectProject, onCreateProject, on
     if (projects.length > 0) {
       return html`
         <div class="project-list">
-          <h3>dossiers existants</h3>
+          <h3>Existing folders</h3>
           <ul class="project-tree">
             ${projects.map(node => html`
               <${ProjectNodeItem}
@@ -131,40 +131,40 @@ export const ProjectSelector = ({ projects, onSelectProject, onCreateProject, on
 
     return html`
         <div class="no-projects">
-            <p>Aucun dossier dans ce bucket.</p>
-            <p>Créez-en un pour commencer !</p>
+            <p>No folders in this bucket.</p>
+            <p>Create one to get started!</p>
         </div>
     `;
   }
 
   return html`
     <div class="project-selector-container">
-      <p style="margin-top: 0; margin-bottom: 2rem; color: var(--c-text-light);">Choisissez une destination pour vos fichiers.</p>
+      <p style="margin-top: 0; margin-bottom: 2rem; color: var(--c-text-light);">Choose a destination for your files.</p>
       
        <div class="upload-to-root-option" onClick=${onUploadToRoot} role="button" tabindex="0">
         <div class="upload-to-root-content">
             <${UploadToRootIcon} />
             <div class="upload-to-root-text">
-                <strong>Téléverser à la racine</strong>
-                <span class="light-text">Glissez-déposez directement dans le bucket.</span>
+                <strong>Upload to Root</strong>
+                <span class="light-text">Upload directly into the bucket.</span>
             </div>
         </div>
         <div class="project-list-chevron"><${ChevronRightIcon} /></div>
       </div>
       
-      <div class="project-selector-divider">OU</div>
+      <div class="project-selector-divider">OR</div>
 
       <form class="new-project-form" onSubmit=${handleCreate}>
         <input 
           type="text" 
-          placeholder="Nom du nouveau dossier (à la racine)" 
+          placeholder="New folder name (at root)" 
           value=${newProjectName} 
           onInput=${(e: Event) => setNewProjectName((e.target as HTMLInputElement).value)}
-          aria-label="Nom du nouveau dossier"
+          aria-label="New folder name"
           disabled=${isLoading}
         />
         <button type="submit" class="btn btn-primary" disabled=${!newProjectName.trim() || isLoading}>
-            Créer
+            Create
         </button>
       </form>
 

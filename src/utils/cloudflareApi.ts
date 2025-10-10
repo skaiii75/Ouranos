@@ -18,10 +18,10 @@ export interface R2Bucket {
  */
 export const listR2Buckets = async (workerUrl: string, accountId: string, apiToken: string): Promise<R2Bucket[]> => {
     if (!accountId || !apiToken) {
-        throw new Error("L'ID de compte et le jeton d'API sont requis.");
+        throw new Error("Account ID and API Token are required.");
     }
     
-    logger.info(`Récupération de la liste des buckets pour le compte ${accountId.slice(0, 8)}...`);
+    logger.info(`Fetching bucket list for account ${accountId.slice(0, 8)}...`);
     try {
         // The call now goes to our own worker, which will proxy the request to the Cloudflare API.
         const response = await apiFetch(workerUrl, '/list-cf-buckets', {
@@ -31,16 +31,16 @@ export const listR2Buckets = async (workerUrl: string, accountId: string, apiTok
         
         if (!response || !Array.isArray(response.buckets)) {
             // This error comes from our worker if its response is malformed.
-            throw new Error("La réponse du worker pour la liste des buckets est invalide.");
+            throw new Error("The worker's response for the bucket list is invalid.");
         }
         
-        logger.info(`Buckets Cloudflare récupérés avec succès`, { count: response.buckets.length });
+        logger.info(`Cloudflare buckets fetched successfully`, { count: response.buckets.length });
         return response.buckets;
         
     } catch (error: any) {
         // Errors from apiFetch are already parsed. We can re-throw them.
         // If the worker forwarded an error from the Cloudflare API, it will be in error.message.
-        logger.error(`Échec de la récupération des buckets Cloudflare`, { error: error.message });
+        logger.error(`Failed to fetch Cloudflare buckets`, { error: error.message });
         throw error;
     }
 };

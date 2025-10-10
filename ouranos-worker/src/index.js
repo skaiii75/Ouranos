@@ -1,13 +1,13 @@
-// En-têtes pour la gestion du CORS (Cross-Origin Resource Sharing)
+// Headers for CORS (Cross-Origin Resource Sharing) management
 const corsHeaders = {
   'Access-Control-Allow-Headers': '*',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  // IMPORTANT: Pour la production, remplacez '*' par le domaine de votre application web.
+  // IMPORTANT: For production, replace '*' with your web application's domain.
   'Access-Control-Allow-Origin': '*',
 };
 
 /**
- * Gère les requêtes "pre-flight" OPTIONS pour le CORS.
+ * Handles "pre-flight" OPTIONS requests for CORS.
  */
 async function handleOptions(request) {
   if (
@@ -25,7 +25,7 @@ async function handleOptions(request) {
 
 export default {
   async fetch(request, env, ctx) {
-    // Répondre aux requêtes OPTIONS pour le CORS
+    // Respond to OPTIONS requests for CORS
     if (request.method === 'OPTIONS') {
       return handleOptions(request);
     }
@@ -63,8 +63,8 @@ export default {
 };
 
 /**
- * Gère l'endpoint /buckets
- * Identifie et retourne les liaisons R2 disponibles dans l'environnement du worker.
+ * Handles the /buckets endpoint
+ * Identifies and returns the available R2 bindings in the worker's environment.
  */
 async function handleListBindings(request, env) {
   const allKeys = Object.keys(env);
@@ -73,8 +73,8 @@ async function handleListBindings(request, env) {
 
   for (const key of allKeys) {
     const binding = env[key];
-    // Vérification simplifiée : si l'objet possède les méthodes `get` et `put`,
-    // on le considère comme un bucket R2. Cela contourne les problèmes liés à `createPresignedUrl`.
+    // Simplified check: if the object has 'get' and 'put' methods,
+    // we consider it an R2 bucket. This bypasses issues related to `createPresignedUrl`.
     if (binding && typeof binding.get === 'function' && typeof binding.put === 'function') {
       buckets.push(key);
     } else {
@@ -94,8 +94,8 @@ async function handleListBindings(request, env) {
 }
 
 /**
- * Gère l'endpoint /upload-file
- * Reçoit un fichier directement du client et le téléverse sur R2 via un stream.
+ * Handles the /upload-file endpoint
+ * Receives a file directly from the client and uploads it to R2 via a stream.
  */
 async function handleUploadFile(request, env) {
   if (request.method !== 'POST') {
@@ -107,22 +107,22 @@ async function handleUploadFile(request, env) {
   const contentType = request.headers.get('content-type');
 
   if (!bucketBinding || !objectKeyHeader) {
-    return new Response(JSON.stringify({ error: 'En-têtes requis manquants: x-bucket-binding et x-object-key' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: 'Missing required headers: x-bucket-binding and x-object-key' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   const objectKey = decodeURIComponent(objectKeyHeader);
 
   const bucket = env[bucketBinding];
   if (!bucket) {
-    return new Response(JSON.stringify({ error: `La liaison '${bucketBinding}' est introuvable ou n'est pas un bucket R2.` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: `Binding '${bucketBinding}' not found or is not an R2 bucket.` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   if (!request.body) {
-      return new Response(JSON.stringify({ error: 'Le corps de la requête est vide.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Request body is empty.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
-  // Le corps de la requête (le fichier) est directement streamé vers R2.
-  // C'est une méthode très efficace pour gérer les téléversements.
+  // The request body (the file) is streamed directly to R2.
+  // This is a very efficient method for handling uploads.
   await bucket.put(objectKey, request.body, {
     httpMetadata: {
       contentType: contentType || 'application/octet-stream',
@@ -136,8 +136,8 @@ async function handleUploadFile(request, env) {
 
 
 /**
- * Gère l'endpoint /list-cf-buckets
- * Agit comme un proxy sécurisé vers l'API Cloudflare pour lister les buckets d'un compte.
+ * Handles the /list-cf-buckets endpoint
+ * Acts as a secure proxy to the Cloudflare API to list an account's buckets.
  */
 async function handleListCfBuckets(request, env) {
   if (request.method !== 'POST') {
@@ -149,7 +149,7 @@ async function handleListCfBuckets(request, env) {
     const { accountId, apiToken } = body;
 
     if (!accountId || !apiToken) {
-      return new Response(JSON.stringify({ error: "L'ID de compte et le jeton d'API sont requis." }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: "Account ID and API Token are required." }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const cfApiUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets`;
@@ -166,14 +166,14 @@ async function handleListCfBuckets(request, env) {
     const cfData = await cfResponse.json();
 
     if (!cfResponse.ok || !cfData.success) {
-      const errorMessage = cfData.errors?.[0]?.message || 'Erreur lors de la communication avec l\'API Cloudflare.';
+      const errorMessage = cfData.errors?.[0]?.message || 'Error communicating with the Cloudflare API.';
       const errorCode = cfData.errors?.[0]?.code || cfResponse.status;
       
-      let friendlyError = `Erreur API Cloudflare : ${errorMessage}`;
+      let friendlyError = `Cloudflare API Error: ${errorMessage}`;
       if (errorCode === 10000 || errorCode === 9109) {
-        friendlyError = "Erreur d'authentification. Veuillez vérifier que votre Jeton d'API est correct, actif, et possède la permission 'R2:Read'.";
+        friendlyError = "Authentication error. Please verify that your API Token is correct, active, and has the 'R2:Read' permission.";
       } else if (String(errorCode).startsWith('7')) {
-        friendlyError = "L'ID de Compte Cloudflare est incorrect ou n'a pas été trouvé.";
+        friendlyError = "The Cloudflare Account ID is incorrect or was not found.";
       }
 
       return new Response(JSON.stringify({ error: friendlyError }), { status: cfResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -186,7 +186,7 @@ async function handleListCfBuckets(request, env) {
 
   } catch (e) {
     if (e instanceof SyntaxError) {
-      return new Response(JSON.stringify({ error: 'Le corps de la requête est invalide (JSON malformé).' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Request body is invalid (malformed JSON).' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     // Re-throw other errors to be handled by the main fetch handler
     throw e;
@@ -194,8 +194,8 @@ async function handleListCfBuckets(request, env) {
 }
 
 /**
- * Gère l'endpoint /list-objects
- * Liste les objets (fichiers) et les dossiers pour un préfixe donné dans un bucket R2.
+ * Handles the /list-objects endpoint
+ * Lists objects (files) and folders for a given prefix in an R2 bucket.
  */
 async function handleListObjects(request, env) {
   if (request.method !== 'GET') {
@@ -207,19 +207,19 @@ async function handleListObjects(request, env) {
   const cursor = request.headers.get('x-cursor') || undefined;
 
   if (!bucketBinding) {
-    return new Response(JSON.stringify({ error: 'En-tête requis manquant: x-bucket-binding' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: 'Missing required header: x-bucket-binding' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   const bucket = env[bucketBinding];
   if (!bucket) {
-    return new Response(JSON.stringify({ error: `La liaison '${bucketBinding}' est introuvable ou n'est pas un bucket R2.` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: `Binding '${bucketBinding}' not found or is not an R2 bucket.` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   const listOptions = {
     prefix: prefix,
     cursor: cursor,
     limit: 100,
-    delimiter: '/', // Pour séparer les fichiers des dossiers
+    delimiter: '/', // To separate files from folders
     include: ['httpMetadata'],
   };
 
@@ -238,8 +238,8 @@ async function handleListObjects(request, env) {
 }
 
 /**
- * Gère l'endpoint /list-folders
- * Liste TOUS les "dossiers" (préfixes) dans un bucket R2, y compris les dossiers imbriqués.
+ * Handles the /list-folders endpoint
+ * Lists ALL "folders" (prefixes) in an R2 bucket, including nested folders.
  */
 async function handleListFolders(request, env) {
   if (request.method !== 'GET') {
@@ -249,28 +249,28 @@ async function handleListFolders(request, env) {
   const bucketBinding = request.headers.get('x-bucket-binding');
 
   if (!bucketBinding) {
-    return new Response(JSON.stringify({ error: 'En-tête requis manquant: x-bucket-binding' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: 'Missing required header: x-bucket-binding' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   const bucket = env[bucketBinding];
   if (!bucket) {
-    return new Response(JSON.stringify({ error: `La liaison '${bucketBinding}' est introuvable ou n'est pas un bucket R2.` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: `Binding '${bucketBinding}' not found or is not an R2 bucket.` }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   const folderPaths = new Set();
   let cursor = undefined;
 
-  // Gérer la pagination de l'API R2
+  // Handle R2 API pagination
   while (true) {
     const listResult = await bucket.list({ cursor });
 
     for (const object of listResult.objects) {
       const key = object.key;
-      // Si la clé contient un '/', c'est qu'elle est dans un dossier.
+      // If the key contains a '/', it's in a folder.
       if (key.includes('/')) {
-        // Extraire toutes les parties du chemin. Ex: "a/b/c.txt" -> "a/", "a/b/"
+        // Extract all parts of the path. Ex: "a/b/c.txt" -> "a/", "a/b/"
         const parts = key.split('/');
-        // On ignore le dernier élément qui est le nom du fichier.
+        // We ignore the last element, which is the filename.
         let currentPath = '';
         for (let i = 0; i < parts.length - 1; i++) {
           currentPath += parts[i] + '/';
@@ -279,7 +279,7 @@ async function handleListFolders(request, env) {
       }
     }
     
-    // Si truncated est faux, nous avons listé tous les objets.
+    // If truncated is false, we have listed all objects.
     if (!listResult.truncated) {
       break;
     }
@@ -294,8 +294,8 @@ async function handleListFolders(request, env) {
 }
 
 /**
- * Gère l'endpoint /delete-objects
- * Supprime en masse des fichiers et/ou des dossiers (préfixes).
+ * Handles the /delete-objects endpoint
+ * Bulk deletes files and/or folders (prefixes).
  */
 async function handleDeleteObjects(request, env) {
   if (request.method !== 'POST') {
@@ -332,8 +332,8 @@ async function handleDeleteObjects(request, env) {
 }
 
 /**
- * Gère l'endpoint /list-keys-for-prefixes
- * Récupère récursivement toutes les clés d'objet sous les préfixes donnés.
+ * Handles the /list-keys-for-prefixes endpoint
+ * Recursively fetches all object keys under the given prefixes.
  */
 async function handleListKeysForPrefixes(request, env) {
   if (request.method !== 'POST') {

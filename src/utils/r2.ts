@@ -3,7 +3,7 @@ import { logger } from './logger';
 
 export const apiFetch = async (workerUrl: string, endpoint: string, options: RequestInit = {}) => {
   if (!workerUrl) {
-    throw new Error("L'URL du worker n'est pas configurée.");
+    throw new Error("Worker URL is not configured.");
   }
   const url = `${workerUrl.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`;
   
@@ -13,7 +13,7 @@ export const apiFetch = async (workerUrl: string, endpoint: string, options: Req
     headers['Content-Type'] = 'application/json';
   }
   
-  logger.network(`Requête API: ${options.method || 'GET'} ${url}`, { options });
+  logger.network(`API Request: ${options.method || 'GET'} ${url}`, { options });
 
   try {
     const response = await fetch(url, {
@@ -22,30 +22,30 @@ export const apiFetch = async (workerUrl: string, endpoint: string, options: Req
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: `Le serveur a répondu avec le statut : ${response.status} ${response.statusText}` }));
-      logger.error(`Erreur API: ${response.status} ${response.statusText}`, { url, errorData });
-      throw new Error(errorData.error || errorData.message || `Erreur API : ${response.status}`);
+      const errorData = await response.json().catch(() => ({ message: `Server responded with status: ${response.status} ${response.statusText}` }));
+      logger.error(`API Error: ${response.status} ${response.statusText}`, { url, errorData });
+      throw new Error(errorData.error || errorData.message || `API Error: ${response.status}`);
     }
 
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.indexOf("application/json") !== -1) {
       const data = await response.json();
-      logger.network(`Réponse API (JSON) pour ${url}`, { status: response.status, data });
+      logger.network(`API Response (JSON) for ${url}`, { status: response.status, data });
       return data;
     } else {
-      // Pour les requêtes comme DELETE qui peuvent ne pas retourner de corps
-      logger.network(`Réponse API (non-JSON) pour ${url}`, { status: response.status });
+      // For requests like DELETE that may not return a body
+      logger.network(`API Response (non-JSON) for ${url}`, { status: response.status });
       return; 
     }
   } catch (error: any) {
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-          let friendlyError = `Erreur réseau ou problème de CORS. Impossible de contacter le worker à l'adresse ${workerUrl}.`;
-          friendlyError += `\n\n- Vérifiez que l'URL est correcte et que le worker est bien déployé.\n- Assurez-vous que la configuration CORS du worker autorise les requêtes de cette application.`;
-          logger.error('Erreur réseau ou CORS', { url, error: error.message });
+          let friendlyError = `Network error or CORS issue. Could not contact the worker at ${workerUrl}.`;
+          friendlyError += `\n\n- Check that the URL is correct and the worker is deployed.\n- Ensure the worker's CORS configuration allows requests from this application.`;
+          logger.error('Network or CORS error', { url, error: error.message });
           throw new Error(friendlyError);
       }
-      if (!error.message.startsWith('Erreur API')) {
-         logger.error(`Erreur inattendue dans apiFetch pour ${url}`, { error: error.message, stack: error.stack });
+      if (!error.message.startsWith('API Error')) {
+         logger.error(`Unexpected error in apiFetch for ${url}`, { error: error.message, stack: error.stack });
       }
       throw error;
   }
@@ -87,7 +87,7 @@ export const getAvailableBuckets = async (workerUrl: string): Promise<BucketsRes
     // We use 'no-store' to ensure we always get the latest configuration from the worker.
     const response = await apiFetch(workerUrl, '/buckets', { cache: 'no-store' });
     if (!response || !Array.isArray(response.buckets)) {
-        throw new Error("La réponse de l'API pour les buckets est invalide.");
+        throw new Error("The API response for buckets is invalid.");
     }
     return response as BucketsResponse;
 };
@@ -106,7 +106,7 @@ export const getFoldersForBucket = async (workerUrl: string, bucketBinding: stri
         }
     });
     if (!response || !Array.isArray(response.folders)) {
-        throw new Error("La réponse de l'API pour les dossiers est invalide.");
+        throw new Error("The API response for folders is invalid.");
     }
     return response.folders;
 };
@@ -129,7 +129,7 @@ export const getObjectsForPrefix = async (workerUrl: string, bucketBinding: stri
         }
     });
     if (!response || !Array.isArray(response.objects)) {
-        throw new Error("La réponse de l'API pour les objets est invalide.");
+        throw new Error("The API response for objects is invalid.");
     }
     return response as ListObjectsResponse;
 };
@@ -146,7 +146,7 @@ export const uploadFileToR2 = async (workerUrl: string, bucketBinding: string, o
     const endpoint = '/upload-file';
     const url = `${workerUrl.replace(/\/$/, '')}/${endpoint.replace(/^\//, '')}`;
     
-    logger.network(`Téléversement direct via worker...`, { url, bucketBinding, objectKey, contentType, size: fileBlob.size });
+    logger.network(`Direct upload via worker...`, { url, bucketBinding, objectKey, contentType, size: fileBlob.size });
 
     try {
         const response = await fetch(url, {
@@ -160,20 +160,20 @@ export const uploadFileToR2 = async (workerUrl: string, bucketBinding: string, o
         });
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: `Le serveur a répondu avec le statut : ${response.status} ${response.statusText}` }));
-            logger.error(`Erreur de téléversement direct: ${response.status}`, { url, errorData });
-            throw new Error(errorData.error || errorData.message || `Erreur de téléversement : ${response.status}`);
+            const errorData = await response.json().catch(() => ({ message: `Server responded with status: ${response.status} ${response.statusText}` }));
+            logger.error(`Direct upload error: ${response.status}`, { url, errorData });
+            throw new Error(errorData.error || errorData.message || `Upload error: ${response.status}`);
         }
 
-        logger.network(`Téléversement direct via worker réussi.`);
+        logger.network(`Direct upload via worker successful.`);
     } catch (error: any) {
         if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-            const friendlyError = `Erreur réseau ou CORS. Impossible de contacter le worker à l'adresse ${workerUrl} pour le téléversement.`;
-            logger.error('Erreur réseau ou CORS (téléversement)', { url, error: error.message });
+            const friendlyError = `Network error or CORS issue. Could not contact the worker at ${workerUrl} for the upload.`;
+            logger.error('Network or CORS error (upload)', { url, error: error.message });
             throw new Error(friendlyError);
         }
-        if (!error.message.startsWith('Erreur')) {
-           logger.error(`Erreur inattendue dans uploadFileToR2 pour ${url}`, { error: error.message, stack: error.stack });
+        if (!error.message.startsWith('Error')) {
+           logger.error(`Unexpected error in uploadFileToR2 for ${url}`, { error: error.message, stack: error.stack });
         }
         throw error;
     }
@@ -207,7 +207,7 @@ export const listKeysForPrefixes = async (workerUrl: string, bucketBinding: stri
         body: JSON.stringify({ prefixes }),
     });
     if (!response || !Array.isArray(response.keys)) {
-        throw new Error("La réponse de l'API pour la liste des clés est invalide.");
+        throw new Error("The API response for the key list is invalid.");
     }
     return response.keys;
 };

@@ -52,21 +52,21 @@ export const FileDropzone = ({ onFilesSelect }: FileDropzoneProps) => {
     <div class="file-dropzone-container">
         <label for="single-file-input" class="drop-zone ${isDragging ? 'drag-over' : ''}" onDragOver=${handleDragOver} onDragLeave=${handleDragLeave} onDrop=${handleDrop}>
           <div class="drop-zone-icon"><${UploadIcon} /></div>
-          <p><strong>Glissez-déposez</strong> un fichier, plusieurs fichiers, ou même un dossier</p>
-          <p class="light-text">Ou utilisez les options ci-dessous</p>
+          <p><strong>Drag and drop</strong> a file, multiple files, or even a folder</p>
+          <p class="light-text">Or use the options below</p>
           <input type="file" id="single-file-input" onChange=${handleFileChange} accept="image/*,video/*" style="display:none" />
         </label>
         
         <div class="file-selector-actions">
             <button class="btn btn-secondary" onClick=${() => fileInputRef.current?.click()}>
                 <${FilesIcon} />
-                <span>Choisir des fichiers</span>
+                <span>Choose Files</span>
             </button>
             <input ref=${fileInputRef} type="file" onChange=${handleFileChange} accept="image/*,video/*" multiple style="display:none" />
             
             <button class="btn btn-secondary" onClick=${() => folderInputRef.current?.click()}>
                 <${FolderIcon} />
-                <span>Choisir un dossier</span>
+                <span>Choose a Folder</span>
             </button>
             <input ref=${folderInputRef} type="file" onChange=${handleFileChange} webkitdirectory directory multiple style="display:none" />
         </div>

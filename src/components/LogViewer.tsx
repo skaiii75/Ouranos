@@ -41,13 +41,13 @@ export const LogViewer = ({ onClose }: LogViewerProps) => {
         <div class="modal-header">
           <div class="log-viewer-title">
             <${LogIcon} />
-            <h2>Logs de l'application</h2>
+            <h2>Application Logs</h2>
           </div>
-          <button class="header-btn" onClick=${onClose} aria-label="Fermer les logs"><${CloseIcon} /></button>
+          <button class="header-btn" onClick=${onClose} aria-label="Close logs"><${CloseIcon} /></button>
         </div>
         <div class="modal-body log-viewer-body" ref=${logContainerRef}>
           ${logs.length === 0
-            ? html`<div class="no-logs-message">Aucun log à afficher. Interagissez avec l'application pour générer des logs.</div>`
+            ? html`<div class="no-logs-message">No logs to display. Interact with the application to generate logs.</div>`
             : html`
                 <ul class="log-list">
                   ${logs.map(log => html`
@@ -62,8 +62,8 @@ export const LogViewer = ({ onClose }: LogViewerProps) => {
               `}
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" onClick=${handleClear}>Vider les logs</button>
-          <button class="btn btn-primary" onClick=${onClose}>Fermer</button>
+          <button class="btn btn-secondary" onClick=${handleClear}>Clear Logs</button>
+          <button class="btn btn-primary" onClick=${onClose}>Close</button>
         </div>
       </div>
     </div>

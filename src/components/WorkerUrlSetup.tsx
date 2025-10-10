@@ -17,19 +17,19 @@ export const WorkerUrlSetup = ({ onUrlSaved }: WorkerUrlSetupProps) => {
     e.preventDefault();
     const trimmedUrl = url.trim();
     if (!trimmedUrl || !trimmedUrl.startsWith('https://')) {
-        setError("Veuillez entrer une URL valide commençant par https://");
+        setError("Please enter a valid URL beginning with https://");
         return;
     }
     setIsLoading(true);
     setError(null);
-    logger.info(`Tentative de connexion au worker: ${trimmedUrl}`);
+    logger.info(`Attempting to connect to worker: ${trimmedUrl}`);
     try {
         await getAvailableBuckets(trimmedUrl);
-        logger.info(`Connexion au worker réussie.`);
+        logger.info(`Successfully connected to worker.`);
         onUrlSaved(trimmedUrl);
     } catch (e: any) {
-        logger.error(`Échec de la connexion au worker`, { error: e.message, stack: e.stack });
-        setError(`Échec de la connexion : ${e.message}`);
+        logger.error(`Failed to connect to worker`, { error: e.message, stack: e.stack });
+        setError(`Connection failed: ${e.message}`);
     } finally {
         setIsLoading(false);
     }
@@ -37,28 +37,28 @@ export const WorkerUrlSetup = ({ onUrlSaved }: WorkerUrlSetupProps) => {
 
   return html`
     <div class="project-selector-container">
-      <h1 style="color: var(--c-primary); margin-bottom: 0.5rem;">Bienvenue sur Ouranos</h1>
-      <p style="color: var(--c-text-light); margin-top: 0; margin-bottom: 2rem;">Pour commencer, veuillez connecter l'application à votre Worker Cloudflare.</p>
+      <h1 style="color: var(--c-primary); margin-bottom: 0.5rem;">Welcome to Ouranos</h1>
+      <p style="color: var(--c-text-light); margin-top: 0; margin-bottom: 2rem;">To begin, please connect the application to your Cloudflare Worker.</p>
       
       <form onSubmit=${handleSubmit}>
         <div class="form-group" style="text-align: left; margin-bottom: 1rem;">
-          <label for="workerUrl">URL de votre Worker</label>
+          <label for="workerUrl">Your Worker URL</label>
           <input 
             type="url" 
             id="workerUrl"
-            placeholder="https://ouranos-worker.votre-nom.workers.dev" 
+            placeholder="https://ouranos-worker.your-name.workers.dev" 
             value=${url} 
             onInput=${(e: Event) => setUrl((e.target as HTMLInputElement).value)}
-            aria-label="URL du worker Cloudflare"
+            aria-label="Cloudflare Worker URL"
             required
           />
           <small style="color: var(--c-text-light); margin-top: 0.5rem; display: block; line-height: 1.4;">
-            Cette URL est fournie par Cloudflare après avoir déployé votre worker avec la commande <code>npx wrangler deploy</code>.
+            This URL is provided by Cloudflare after deploying your worker with the <code>npx wrangler deploy</code> command.
           </small>
         </div>
         
         <button type="submit" class="btn btn-primary" disabled=${isLoading}>
-            ${isLoading ? html`<div class="loader"></div> Connexion...` : 'Se connecter et sauvegarder'}
+            ${isLoading ? html`<div class="loader"></div> Connecting...` : 'Connect and Save'}
         </button>
       </form>
       ${error && html`<div class="alert alert-danger" style="margin-top: 1.5rem;">${error}</div>`}
